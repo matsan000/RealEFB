@@ -1,0 +1,3520 @@
+:root {
+  --text: #ffffff;
+  --text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  /* Solid dark toolbar rather than frosted glass - matches the EFL tab bar's own chrome
+     (.efl-tabbar), so the dock/home button read as the same flat, businesslike UI instead of
+     a separate glossy/translucent style. */
+  --dock-bg: rgba(15, 23, 42, 0.88);
+  --dock-border: rgba(255, 255, 255, 0.12);
+  --statusbar-icon: rgba(255, 255, 255, 0.92);
+
+  /* EFL palette, matched to the reference EFB screenshot the log view is modelled on: a flat
+     white document, one strong blue for every label/heading, hairline gray rules instead of
+     card borders, and a pale periwinkle banner for the flight strip. Kept as variables so the
+     whole log can be re-tinted from one place. */
+  --efl-blue: #0b62c4;
+  --efl-blue-deep: #14428f;
+  --efl-banner: #dde5f6;
+  --efl-text: #2b2b2b;
+  --efl-muted: #6c727c;
+  --efl-line: #d3d6db;
+  --efl-field-border: #b6bac1;
+  --efl-tab-idle: #8a8f98;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  color: var(--text);
+  /* Plain Helvetica/Arial/Roboto instead of leading with SF Pro Display - the reference EFB
+     screenshots read as a generic cross-platform sans, not Apple's distinctly rounded system
+     font, which was giving the whole app a more "iOS app" flavor than a realistic one. */
+  font-family: "Helvetica Neue", Helvetica, Arial, Roboto, "Segoe UI", sans-serif;
+  position: relative;
+}
+
+/* ============================== Wallpaper ============================== */
+/* Layered CSS gradients stand in for photo wallpapers, so the app ships with no
+   external image asset to fetch or license. A faint noise layer on top breaks up
+   the otherwise perfectly smooth gradient banding that reads as "flat/cartoony". */
+
+#noise {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+}
+
+#wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(180deg, #5c7086 0%, #3f4f61 45%, #2a3743 100%);
+  transition: background 0.4s ease;
+}
+
+#wallpaper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.04) 100%);
+}
+
+/* --- Sky (default) --- */
+/* A flat, muted slate-blue rather than a bright gradient sky photo - reads as a plain tablet
+   background instead of a phone lock-screen wallpaper. */
+body[data-wallpaper="sky"] #wallpaper {
+  background: linear-gradient(180deg, #5c7086 0%, #46586c 45%, #2f3d4a 100%);
+}
+
+/* --- Sunset --- */
+body[data-wallpaper="sunset"] #wallpaper {
+  background: linear-gradient(180deg, #4a4356 0%, #5c4b4c 35%, #6e5548 65%, #7a6049 100%);
+}
+
+body[data-wallpaper="sunset"] #wallpaper::after {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.06) 0%, transparent 30%);
+}
+
+/* --- Dusk --- */
+body[data-wallpaper="dusk"] #wallpaper {
+  background: linear-gradient(180deg, #23263a 0%, #2b2c40 35%, #322f3f 65%, #392f38 100%);
+}
+
+/* --- Night --- */
+body[data-wallpaper="night"] #wallpaper {
+  background:
+    radial-gradient(60% 40% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 70%),
+    linear-gradient(180deg, #0a0d14 0%, #10151f 50%, #161b26 100%);
+}
+
+body[data-wallpaper="night"] #wallpaper::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
+}
+
+/* --- Graphite --- */
+body[data-wallpaper="graphite"] #wallpaper {
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(255, 255, 255, 0.08), transparent 70%),
+    linear-gradient(165deg, #4b5461 0%, #333a44 55%, #21262e 100%);
+}
+
+body[data-wallpaper="graphite"] #wallpaper::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 35%);
+}
+
+/* ============================== Status bar ============================== */
+
+#statusbar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  font-size: 14px;
+  font-weight: 600;
+  text-shadow: var(--text-shadow);
+}
+
+.statusbar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.statusbar-left.hidden {
+  display: none;
+}
+
+#date {
+  font-weight: 500;
+  opacity: 0.85;
+  font-size: 13px;
+}
+
+.statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--statusbar-icon);
+}
+
+.status-icon svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+  filter: drop-shadow(var(--text-shadow));
+}
+
+#battery-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#battery-icon svg {
+  width: 24px;
+  height: 17px;
+}
+
+#connection-icon.offline {
+  color: #ff6b6b;
+}
+
+/* ============================== Setup wizard (one-time, or re-run from Settings) ============================== */
+/* Same centered-card-over-wallpaper layout as #init-screen (see below), just wider to fit the
+   VPT step's three fields comfortably and with a persistent Back/Next nav row instead of a
+   single action button. */
+
+#wizard-screen {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+#wizard-screen.hidden {
+  display: none;
+}
+
+.wizard-card {
+  max-width: 420px;
+  text-align: left;
+}
+
+.wizard-card .init-title {
+  text-align: center;
+}
+
+.wizard-card .init-subtitle {
+  text-align: center;
+}
+
+.wizard-progress {
+  margin: 0 0 18px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+#wizard-body input[type="text"],
+#wizard-body input[type="password"],
+#wizard-body input[type="number"] {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.94);
+  border: none;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.wizard-field-spaced {
+  margin-top: 14px;
+}
+
+.wizard-field-hidden {
+  display: none;
+}
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.wizard-back-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: var(--text-shadow);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 10px 4px;
+}
+
+.wizard-back-btn:active {
+  opacity: 0.6;
+}
+
+.wizard-next-btn {
+  flex: 1;
+  background: #1f6feb;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wizard-next-btn:active {
+  transform: scale(0.98);
+}
+
+.wizard-next-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ============================== Init screen (mandatory startup gate) ============================== */
+/* Shown instead of the home screen whenever the server has no flight plan loaded yet (always
+   true right after a fresh RealEFB restart, since that state is in-memory only) - every tile
+   depends on having one, so this makes sure it's loaded before anything else is reachable. */
+
+#init-screen {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+#init-screen.hidden {
+  display: none;
+}
+
+.init-card {
+  width: 100%;
+  max-width: 380px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  padding: 36px 32px;
+  text-align: center;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.init-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 18px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #7c5cf0, #4f36a8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.init-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.init-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  text-shadow: var(--text-shadow);
+}
+
+.init-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0 0 24px;
+  line-height: 1.4;
+}
+
+#init-simbrief-id {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.94);
+  border: none;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 16px;
+  color: #1f2937;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+#init-button {
+  width: 100%;
+  background: #1f6feb;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#init-button:active {
+  transform: scale(0.98);
+}
+
+#init-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.init-status {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  min-height: 16px;
+}
+
+.init-status.init-status-error {
+  color: #ffb4b4;
+}
+
+/* ============================== Home screen / icon grid ============================== */
+
+#home-screen {
+  height: calc(100% - 40px - 96px);
+  padding: 18px 28px 0;
+  overflow-y: auto;
+}
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 26px 18px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+/* Flat, single-tone icon tiles rather than glossy skeuomorphic app icons - a subtle border
+   and a soft shadow instead of the gradient fill + inset highlight/shine that read as a
+   phone-home-screen app icon rather than enterprise tablet software. */
+.tile-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--icon-dark, #444);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 0.1s ease;
+}
+
+.tile-icon svg {
+  width: 30px;
+  height: 30px;
+  stroke: rgba(255, 255, 255, 0.92);
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  position: relative;
+}
+
+/* Full square product badges (VPT, SimBrief) - each one already has its own background baked
+   in, so it fills the whole tile face (clipped by .tile-icon's overflow:hidden) rather than
+   sitting inset on a colored ground like the drawn stroke icons. */
+.tile-icon img.tile-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: relative;
+}
+
+.tile:active .tile-icon {
+  transform: scale(0.9);
+}
+
+/* Wraps up to 2 lines instead of truncating to one - a single-line ellipsis was cutting
+   longer labels like "SimBrief Performance" down to unreadable fragments ("SimBrief Per...").
+   -webkit-line-clamp is fine to rely on unprefixed-CSS-standard alternatives for here - both
+   places this app runs (WebView2 and Safari/iPad) are Blink/WebKit, which both support it. */
+.tile-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  text-shadow: var(--text-shadow);
+  max-width: 84px;
+  line-height: 1.25;
+  overflow: hidden;
+  display: -webkit-box;
+  /* Three lines rather than two so a genuinely long app name ("VPT Performance Calculator")
+     reads in full instead of being clipped to an ellipsis mid-word. */
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* ============================== Detail screen (opened app, fullscreen) ============================== */
+
+#detail-screen {
+  height: calc(100% - 40px);
+  padding: 28px 28px 96px;
+  overflow-y: auto;
+}
+
+#detail-screen.hidden {
+  display: none;
+}
+
+#detail-title {
+  margin-top: 8px;
+  font-size: 28px;
+  text-shadow: var(--text-shadow);
+}
+
+.coming-soon {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  text-shadow: var(--text-shadow);
+}
+
+#home-screen.hidden {
+  display: none;
+}
+
+/* ============================== Settings screen ============================== */
+
+.settings-wizard-btn {
+  display: block;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #fff;
+  text-shadow: var(--text-shadow);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 460px;
+  margin: 0 auto 24px;
+}
+
+.settings-wizard-btn:active {
+  transform: scale(0.98);
+}
+
+/* One retractable topic - collapsed by default (see renderSettings in app.js), the header row
+   toggles just its own body so opening one section doesn't affect any other. */
+.settings-section {
+  max-width: 460px;
+  margin: 0 auto 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.settings-section-chevron {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  transition: transform 0.15s ease;
+}
+
+.settings-section-collapsed .settings-section-chevron {
+  transform: rotate(-90deg);
+}
+
+.settings-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  text-shadow: var(--text-shadow);
+}
+
+.settings-section-body {
+  padding: 4px 16px 20px;
+}
+
+.settings-section-collapsed .settings-section-body {
+  display: none;
+}
+
+/* A real switch rather than a checkbox - matches how "enable this integration" reads on any
+   phone/tablet settings screen, and makes the on/off state readable at a glance in a list of
+   several of these stacked one after another. */
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.settings-toggle-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: var(--text-shadow);
+}
+
+.settings-toggle-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+}
+
+.settings-toggle-switch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.settings-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+
+.settings-toggle-slider::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.settings-toggle-switch input:checked + .settings-toggle-slider {
+  background: #22c55e;
+}
+
+.settings-toggle-switch input:checked + .settings-toggle-slider::before {
+  transform: translateX(18px);
+}
+
+.settings-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: var(--text-shadow);
+  margin-bottom: 10px;
+}
+
+.settings-row {
+  display: flex;
+  gap: 10px;
+}
+
+.settings-row-spaced {
+  margin-top: 14px;
+}
+
+.settings-label-spaced {
+  margin-top: 20px;
+}
+
+.settings-label-inline {
+  display: inline;
+  margin-bottom: 0;
+}
+
+#settings-port,
+#settings-simbrief-id,
+#settings-sayintentions-code,
+#settings-vpt-devkey,
+#settings-vpt-email,
+#settings-vpt-password {
+  width: 100%;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.92);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 16px;
+  color: #1f2937;
+}
+
+#settings-port {
+  flex: 1;
+}
+
+/* One shared class instead of an ever-growing list of button IDs (that list had quietly gone
+   stale after a rename - SimBrief/SayIntentions/eLoadControl's Save buttons were falling back
+   to bare unstyled browser buttons). Every Save button in Settings gets this, so a future
+   section only needs the class, not another CSS rule. */
+.settings-save-btn {
+  background: var(--efl-blue);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(11, 98, 196, 0.35);
+}
+
+.settings-save-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 1px 4px rgba(11, 98, 196, 0.35);
+}
+
+/* Wraps a password-style input with a show/hide eye button - used for every secret-looking
+   field in Settings and the setup wizard (SayIntentions code, VPT dev key/password,
+   eLoadControl key). The input keeps its own id-based styling (width/background/etc above or
+   in the wizard's own input rule) - this just adds room on the right for the button. */
+.settings-password-field {
+  position: relative;
+}
+
+.settings-password-field input {
+  padding-right: 42px;
+}
+
+.settings-password-eye {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-password-eye svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.settings-password-eye.settings-password-eye-active {
+  color: var(--efl-blue);
+}
+
+.settings-hint {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: var(--text-shadow);
+}
+
+.settings-hint.settings-error {
+  color: #ffb4b4;
+}
+
+.settings-ip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+
+.settings-ip-name {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.settings-ip-url {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: "SF Mono", Consolas, monospace;
+}
+
+/* Settings > Website Apps' list - same translucent-card-on-wallpaper language as
+   .settings-ip-row above, since it lives in the same dark-background Settings screen (unlike
+   the editor overlay below, which is its own full-screen light surface). */
+.webapp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.webapp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.webapp-row-icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.webapp-row-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.webapp-row-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: rgba(255, 255, 255, 0.85);
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.webapp-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.webapp-row-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: var(--text-shadow);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.webapp-row-url {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.webapp-row-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.webapp-row-btn:active {
+  transform: scale(0.94);
+}
+
+/* Add/Edit Website App - full-screen editor (see openWebAppEditor() in app.js), same
+   overlay/header chrome as .atis-modal-overlay/.delay-picker-overlay, but its own light-on-
+   dark-header body since unlike either of those this one's mostly plain text inputs. */
+.webapp-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+}
+
+.webapp-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.webapp-editor-header {
+  flex-shrink: 0;
+  background: #1e293b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.webapp-editor-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.webapp-editor-actions {
+  display: flex;
+  gap: 20px;
+}
+
+.webapp-editor-actions button {
+  background: none;
+  border: none;
+  color: #7fb2ff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Declared after the shared rule above so it wins the cascade without needing !important -
+   same trick #atis-modal-done uses for its own "the affirmative action reads as solid white"
+   look. */
+.webapp-editor-save {
+  color: #fff;
+}
+
+.webapp-editor-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.webapp-editor-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--efl-blue);
+  margin-bottom: 6px;
+}
+
+.webapp-editor-label-spaced {
+  margin-top: 18px;
+}
+
+#webapp-editor-name,
+#webapp-editor-url {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 16px;
+  color: #111827;
+}
+
+#webapp-editor-name:focus,
+#webapp-editor-url:focus {
+  outline: none;
+  border-color: var(--efl-blue);
+}
+
+.webapp-editor-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.webapp-editor-icon-preview {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+}
+
+.webapp-editor-icon-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.webapp-editor-icon-preview svg {
+  width: 26px;
+  height: 26px;
+  stroke: rgba(255, 255, 255, 0.9);
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A styled "button" that's actually a label wrapping a fully transparent, absolutely
+   positioned file input - <input type="file">'s own appearance can't be restyled directly, so
+   this is the usual way to get a custom-looking file picker trigger without JS having to
+   simulate the native picker itself (which .click()-ing a hidden input can't always do
+   reliably across browsers on the first user gesture). */
+.webapp-editor-icon-pick {
+  position: relative;
+  background: var(--efl-blue);
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.webapp-editor-icon-pick input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+#webapp-editor-icon-remove {
+  background: none;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 14px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+#webapp-editor-icon-remove:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.webapp-editor-hint {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.settings-swatch-grid {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.settings-swatch {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-swatch-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+.settings-swatch.selected .settings-swatch-preview {
+  border-color: #fff;
+  transform: scale(1.06);
+}
+
+.settings-swatch:active .settings-swatch-preview {
+  transform: scale(0.94);
+}
+
+.settings-swatch-label {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: var(--text-shadow);
+}
+
+.settings-swatch-preview[data-preview="sky"] {
+  background: radial-gradient(120% 90% at 50% 0%, #75bdec 0%, #3f8dd6 40%, #0f3b6e 100%);
+}
+
+.settings-swatch-preview[data-preview="sunset"] {
+  background: linear-gradient(180deg, #2c2560 0%, #b8507a 46%, #f7a95c 82%, #ffce7a 100%);
+}
+
+.settings-swatch-preview[data-preview="dusk"] {
+  background: linear-gradient(180deg, #10122c 0%, #3a2360 55%, #7a3a5e 100%);
+}
+
+.settings-swatch-preview[data-preview="night"] {
+  background: linear-gradient(180deg, #0a0d14 0%, #161b26 100%);
+}
+
+.settings-swatch-preview[data-preview="graphite"] {
+  background: linear-gradient(165deg, #4b5461 0%, #21262e 100%);
+}
+
+/* ============================== Takeoff Performance calculator (VPT) ============================== */
+
+.vpt-form {
+  max-width: 640px;
+}
+
+/* Fixed rather than positioned relative to #detail-screen (which scrolls) - stays put in the
+   corner the whole time the calculator's open, per the "top right corner" brief. */
+.vpt-auth-btn {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 5;
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.vpt-auth-btn:active {
+  transform: scale(0.96);
+}
+
+.vpt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.vpt-grid-spaced {
+  margin-top: 20px;
+}
+
+.vpt-field-wide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: var(--text-shadow);
+  max-width: 460px;
+  margin-top: 18px;
+}
+
+.vpt-field-wide select {
+  background: rgba(255, 255, 255, 0.92);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 400;
+  text-transform: none;
+  color: #1f2937;
+}
+
+.vpt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: var(--text-shadow);
+}
+
+.vpt-field input,
+.vpt-field select {
+  background: rgba(255, 255, 255, 0.92);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 400;
+  text-transform: none;
+  color: #1f2937;
+}
+
+#vpt-calculate {
+  background: #2f9e6e;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#vpt-calculate:active {
+  transform: scale(0.96);
+}
+
+.vpt-results-card {
+  max-width: 460px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-top: 14px;
+}
+
+.vpt-results-card p {
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+
+.vpt-result-head {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.9);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.vpt-result-note {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 6px 0;
+}
+
+/* A negative runway margin - the takeoff doesn't fit. Deliberately louder than a normal row. */
+.vpt-result-row.vpt-result-bad span {
+  color: #ffb4b4;
+  font-weight: 700;
+}
+
+/* Contamination depth, shown only for runway conditions whose formData sets requiresDepth. */
+.vpt-field-hidden {
+  display: none;
+}
+
+.vpt-result-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vpt-result-row:last-child {
+  border-bottom: none;
+}
+
+.vpt-result-row span:first-child {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.vpt-result-row span:last-child {
+  font-weight: 600;
+  font-family: "SF Mono", Consolas, monospace;
+}
+
+/* ============================== Home button ============================== */
+/* A physical-style home button fixed at the bottom center, like a real tablet - the
+   way back to the home screen from inside any opened app. */
+
+#home-button {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--dock-bg);
+  border: 1px solid var(--dock-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+#home-button.hidden {
+  display: none;
+}
+
+#home-button:active {
+  transform: translateX(-50%) scale(0.93);
+}
+
+#home-button-ring {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+/* ============================== EFL (Electronic Flight Log) ============================== */
+
+.efl-import-screen {
+  height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+
+#efl-import-btn {
+  background: var(--efl-blue);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 16px 26px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#efl-import-btn:active {
+  transform: scale(0.97);
+}
+
+#efl-import-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* The log owns the whole screen while it's open - without this the wallpaper shows through
+   below the last waypoint whenever the content is shorter than the viewport, which breaks the
+   illusion of a single continuous printed page. Keyed off the sheet's presence rather than a
+   class toggled in JS, so it can never be left switched on after navigating away (:has is
+   already relied on elsewhere in this file, and both targets here are Blink/WebKit). */
+#detail-screen:has(.efl-sheet) {
+  background: #fff;
+}
+
+/* The loaded-flight view is a flat, edge-to-edge white document - no rounded card, no drop
+   shadow, no wallpaper showing through. The negative side margins cancel #detail-screen's own
+   28px padding so the log runs the full width of the screen the way real EFB software does. */
+.efl-sheet {
+  background: #fff;
+  color: var(--efl-text);
+  /* Just enough room to clear the fixed 64px tab bar plus a little breathing space - this
+     used to be 150px, sized for the old 82px floating pill tab bar with extra clearance on
+     top of that. Left oversized after the bar became a flat 64px strip, it left a big dead
+     blank gap of white sheet below the last bit of real content. */
+  margin: 0 -28px 84px;
+}
+
+/* The flight strip - one dense line of bold blue capitals on a pale periwinkle band, the way
+   an OFP header prints. Everything in it is the same weight and colour; only the size steps
+   down slightly for the less important trailing fields. */
+.efl-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  background: var(--efl-banner);
+  border-bottom: 1px solid #c6d0e6;
+  padding: 12px 16px;
+  color: var(--efl-blue-deep);
+  text-transform: uppercase;
+}
+
+.efl-callsign {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.efl-route {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.efl-meta {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Side padding lives here; the pieces that are meant to run edge to edge (section rules,
+   waypoint rows) cancel it with a matching -16px margin of their own. */
+.efl-tab-content {
+  min-height: 160px;
+  padding: 0 16px 24px;
+}
+
+.efl-sheet .coming-soon {
+  color: #6b7280;
+  text-shadow: none;
+}
+
+/* A flat white system-style tab bar flush against the bottom edge - no floating pill, no
+   rounding, no blur. The round home button sits in the middle (4 tabs, home, 4 tabs), the
+   same easy big tap target the app-wide dock's own home button uses. */
+.efl-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  /* --keyboard-inset (set from app.js via the VisualViewport API) rides this up above a
+     tablet's on-screen keyboard instead of leaving it pinned behind it - see the comment by
+     updateKeyboardInset() in app.js. */
+  bottom: var(--keyboard-inset, 0px);
+  height: 64px;
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border-top: 1px solid var(--efl-line);
+}
+
+.efl-home-btn {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  align-self: center;
+  margin: 0 4px;
+  border-radius: 50%;
+  background: var(--efl-blue);
+  border: none;
+  box-shadow: 0 2px 6px rgba(11, 98, 196, 0.35);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.efl-home-btn:active {
+  transform: scale(0.93);
+}
+
+.efl-home-ring {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+}
+
+.efl-tab-btn {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  color: var(--efl-tab-idle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.efl-tab-btn span {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.efl-tab-icon {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.efl-tab-btn.selected {
+  color: var(--efl-blue);
+}
+
+/* Section headings keep the solid blue band (it reads as a printed OFP section rule), but
+   full-bleed now that .efl-tab-content no longer carries side padding of its own. */
+.efl-section-title {
+  background: var(--efl-blue);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-shadow: none;
+  margin: 0 -16px 16px;
+  padding: 9px 16px;
+}
+
+/* A second (or later) section title on the same tab can't bleed upward into whatever's
+   above it - just the left/right/bottom bleed carries over from the base rule. */
+.efl-section-title.efl-section-title-spaced {
+  margin-top: 28px;
+}
+
+/* Reads as a caption for what's below rather than a full section heading - same idea as the
+   small uppercase labels in .fmc-info-header just under this one. */
+.efl-section-title.efl-section-title-small {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 8px 20px;
+}
+
+.fuel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 24px;
+}
+
+.fuel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fuel-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--efl-blue);
+}
+
+.fuel-box {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  gap: 6px;
+}
+
+.fuel-box input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  text-align: right;
+  font-size: 16px;
+  color: #111827;
+}
+
+.fuel-box input[type="text"] {
+  text-align: left;
+}
+
+.fuel-box input:focus {
+  outline: none;
+}
+
+/* Removes the browser's native up/down step arrows on number inputs - this is a data entry
+   grid, not a counter, and the arrows just get in the way on a touchscreen. */
+.fuel-box input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.fuel-box input::-webkit-outer-spin-button,
+.fuel-box input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.fuel-unit {
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.fuel-sign-toggle {
+  flex-shrink: 0;
+  display: flex;
+  background: #eef1f6;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.fuel-sign-opt {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fuel-sign-opt.selected {
+  background: var(--efl-blue);
+  color: #fff;
+}
+
+.fuel-sign-opt:active {
+  transform: scale(0.9);
+}
+
+.fuel-choice-toggle {
+  display: flex;
+  background: #eef1f6;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+  width: fit-content;
+}
+
+.fuel-choice-opt {
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 7px 16px;
+}
+
+.fuel-choice-opt.selected {
+  background: var(--efl-blue);
+  color: #fff;
+}
+
+.fuel-choice-opt:active {
+  transform: scale(0.97);
+}
+
+.fuel-save-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 26px;
+}
+
+.fuel-times-note {
+  font-size: 12px;
+  color: #6b7280;
+  margin: -6px 0 14px;
+}
+
+.fuel-box-readonly {
+  background: #f1f5f9;
+}
+
+.fuel-box-readonly input {
+  color: #6b7280;
+}
+
+/* Delays fields hold two inputs (reason + time) per slot, unlike every other .fuel-field
+   which wraps a single .fuel-box - styled to match .fuel-box's look without reusing it. */
+.delay-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.delay-reason-input,
+.delay-time-input {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 16px;
+  color: #111827;
+}
+
+.delay-reason-input:focus,
+.delay-time-input:focus {
+  outline: none;
+}
+
+.delay-reason-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.delay-time-input {
+  width: 78px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+/* The Delay reason is a button opening openDelayCodePicker() rather than a text input (see
+   delayField() in app.js) - .delay-reason-input above still gives it the same box look, this
+   just resets the <button> defaults and adds the left-aligned, single-line truncation a typed
+   input gets for free. */
+.delay-reason-btn {
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.delay-reason-btn-empty {
+  color: #94a3b8;
+}
+
+/* Full-screen picker for the Standard IATA Delay Codes (see openDelayCodePicker() in app.js),
+   same overlay/header language as .atis-modal-overlay so it reads as the same kind of picker. */
+.delay-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+}
+
+.delay-picker-modal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.delay-picker-header {
+  flex-shrink: 0;
+  background: #1e293b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.delay-picker-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.delay-picker-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.delay-picker-search {
+  flex-shrink: 0;
+  margin: 12px 18px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 15px;
+  color: #111827;
+}
+
+.delay-picker-search:focus {
+  outline: none;
+  border-color: var(--efl-blue);
+}
+
+.delay-picker-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 18px 18px;
+}
+
+.delay-picker-group-title {
+  background: var(--efl-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin: 14px 0 6px;
+}
+
+.delay-picker-group:first-child .delay-picker-group-title {
+  margin-top: 0;
+}
+
+.delay-picker-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.delay-picker-item.selected {
+  border-color: var(--efl-blue);
+  background: #eaf2fd;
+}
+
+.delay-picker-item-code {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--efl-blue);
+  font-size: 13px;
+  min-width: 64px;
+}
+
+.delay-picker-item-desc {
+  font-size: 14px;
+  color: #111827;
+}
+
+.delay-picker-group.hidden,
+.delay-picker-item.hidden {
+  display: none;
+}
+
+#efl-save-btn {
+  background: var(--efl-blue);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#efl-save-btn:active {
+  transform: scale(0.97);
+}
+
+/* One fixed bar for the Save button/status, shared by every EFL tab that has anything to
+   save, instead of each tab burying its own copy at the bottom of whatever content it has -
+   see renderEflTab()/EFL_SAVE_HANDLERS in app.js for which tab it acts on. Sits just above
+   the tab bar, same fixed-footer treatment. */
+.efl-save-bar {
+  position: fixed;
+  right: 18px;
+  /* Clears the flush 64px-tall tab bar with a little breathing room - plus --keyboard-inset,
+     same reasoning as .efl-tabbar's own bottom above. */
+  bottom: calc(76px + var(--keyboard-inset, 0px));
+  width: fit-content;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+}
+
+.efl-save-bar.hidden {
+  display: none;
+}
+
+/* The bar itself never toggles hidden just because its status text faded out (see
+   flashSaveStatus() in app.js) - without this it was left behind as an empty white pill once
+   "Saved." cleared. Hiding it whenever the status span has nothing in it covers that case
+   declaratively, on top of the .hidden class above for tabs with nothing to save at all. */
+.efl-save-bar:has(#efl-save-status:empty) {
+  visibility: hidden;
+}
+
+.fuel-save-status {
+  font-size: 13px;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.fuel-save-status.fuel-save-error {
+  color: #dc2626;
+}
+
+/* Bigger and full-width relative to #fuel-save - this is the "one last step" action for the
+   whole tab, not just one more field group, so it should read as more prominent. */
+/* Weather tab - a paged view, one page for the METAR/TAF/SIGMET text and one per chart image.
+   .wx-pager sits in the same fixed footer spot .efl-save-bar uses on other tabs (Weather has
+   no save handler, so that spot's otherwise empty here). */
+.wx-page {
+  min-height: 200px;
+}
+
+.wx-pager {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 90px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 18px;
+}
+
+.wx-pager-btn {
+  background: #eef1f6;
+  border: 1px solid #cbd5e1;
+  color: var(--efl-blue);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wx-pager-btn:active {
+  transform: scale(0.93);
+}
+
+.wx-pager-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.wx-pager-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  min-width: 90px;
+  text-align: center;
+}
+
+.wx-section-title {
+  color: var(--efl-blue);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 22px 0 8px;
+}
+
+.wx-section-title:first-of-type {
+  margin-top: 4px;
+}
+
+.wx-airport-block {
+  margin-bottom: 14px;
+}
+
+.wx-airport-heading {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.wx-raw {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: "SF Mono", "Consolas", "Menlo", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #1f2937;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0 0 6px;
+}
+
+/* ATC tab - just SimBrief's own flight plan text, reusing .wx-raw's monospace box but a bit
+   larger since it's the whole tab's content rather than one line among several. */
+.atc-flightplan {
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 14px 16px;
+}
+
+.wx-fir-block {
+  margin-bottom: 14px;
+}
+
+.wx-fir-heading {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.wx-sigmet {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+/* overflow:hidden clips a zoomed-in image to this same box instead of growing the page around
+   it - transform (see .wx-chart-img/setupChartZoom in app.js) never changes an element's own
+   layout size, only how it paints, so this box stays exactly the unscaled image's normal
+   max-width/max-height footprint regardless of the current zoom level. position:relative
+   anchors the zoom buttons overlay to this box rather than the whole page. */
+.wx-chart-wrap {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Capped on height as well as width, with object-fit:contain so it shrinks by whichever
+   dimension is tighter - previously only max-width was set, so a tall/portrait chart on a
+   wide tablet screen (where width alone isn't the limiting factor) could still end up taller
+   than the viewport and need scrolling to see the bottom of it. The calc() clearance accounts
+   for the status bar, flight-strip header, and the fixed page-indicator bar below (.wx-pager)
+   so the whole image fits above it without overlapping. */
+.wx-chart-img {
+  max-width: 100%;
+  max-height: calc(100vh - 280px);
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transform-origin: center center;
+}
+
+/* touch-action:none only while actually zoomed in (see setupChartZoom) - it tells the browser
+   to hand ALL touch handling on the image to our own JS rather than trying to scroll/pinch on
+   its own, which would otherwise fight with drag-to-pan. Left off at the default 1x zoom so it
+   never interferes with the page's own swipe-to-turn-page gesture. */
+.wx-chart-img-zoomed {
+  cursor: grab;
+  touch-action: none;
+}
+
+.wx-zoom-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wx-zoom-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: var(--efl-blue);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.wx-zoom-btn:active {
+  transform: scale(0.94);
+}
+
+.wx-zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* NOTAMS - one collapsible group per airport/FIR, same collapse mechanics as .wp-card
+   (chevron rotates, body just hides rather than being removed) but its own class names since
+   a route's NOTAM count can run into the hundreds - see renderNotamsTab's lazy build. */
+.notam-group {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.notam-group-title {
+  background: #eef1f6;
+  border-bottom: 1px solid #dde2ea;
+  padding: 10px 14px;
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.notam-group-chevron {
+  flex-shrink: 0;
+  color: var(--efl-blue);
+  font-size: 11px;
+  transition: transform 0.15s ease;
+}
+
+.notam-group-collapsed .notam-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.notam-group-collapsed .notam-group-body {
+  display: none;
+}
+
+.notam-group-count {
+  margin-left: auto;
+  background: var(--efl-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+.notam-group-body {
+  padding: 12px 14px;
+}
+
+.notam-item {
+  margin-bottom: 10px;
+}
+
+.notam-item:last-child {
+  margin-bottom: 0;
+}
+
+.notam-item-id {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--efl-blue);
+  margin-bottom: 3px;
+}
+
+/* Marks the departure/arrival airport's own NOTAM group - just a label, no other groups are
+   auto-expanded or flagged. */
+.notam-group-leg-badge {
+  background: var(--efl-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 10px;
+  padding: 2px 8px;
+  margin-left: auto;
+}
+
+/* .notam-group-count already has margin-left:auto for when it's the only badge - once the
+   leg badge is also present, that one takes over "push me right" and the count just sits
+   directly after it. */
+.notam-group-leg-badge + .notam-group-count {
+  margin-left: 0;
+}
+
+.fmc-notes {
+  margin-bottom: 18px;
+}
+
+.fmc-notes-field {
+  display: block;
+}
+
+/* No drag handle and no internal scrollbar - autoGrowTextarea() in app.js grows the box
+   itself to fit whatever's typed, so overflow never needs handling here. */
+.fmc-notes-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #111827;
+}
+
+.fmc-notes-field textarea:focus {
+  outline: none;
+  border-color: var(--efl-blue);
+}
+
+.log-flight-btn {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 26px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+}
+
+.log-flight-btn:active {
+  transform: scale(0.98);
+}
+
+/* Only ever exists on the standalone print/flightlog.html page (see print-flightlog.js and
+   MainForm.PrintFlightLogAsync) - the desktop host's dedicated print WebView2 renders that
+   page off-screen and PrintToPdfAsync's it, never the live EFL Flight Log tab a pilot might
+   actually have open. Kept out of normal flow (that page has nothing else on it, but this
+   keeps the rule meaningful if it ever does) until made visible by the @media print override
+   below, which is what PrintToPdfAsync actually captures. */
+#flight-log-report {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #flight-log-report,
+  #flight-log-report * {
+    visibility: visible;
+  }
+
+  #flight-log-report {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 24px;
+    font-family: "Helvetica Neue", Helvetica, Arial, Roboto, "Segoe UI", sans-serif;
+    color: #111827;
+  }
+}
+
+.report-header {
+  border-bottom: 3px solid var(--efl-blue);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.report-header h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+
+.report-header p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.report-section {
+  margin-bottom: 18px;
+  break-inside: avoid;
+}
+
+.report-section h2 {
+  background: var(--efl-blue);
+  color: #fff;
+  font-size: 14px;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 16px;
+}
+
+.report-row {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 4px;
+}
+
+.report-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--efl-blue);
+  text-transform: uppercase;
+}
+
+.report-value {
+  font-size: 14px;
+}
+
+.efl-pdf-original-link {
+  display: inline-block;
+  color: var(--efl-blue);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.efl-pdf-original-link:active {
+  opacity: 0.6;
+}
+
+/* Wraps SimBrief's own plan_html verbatim (see /api/simbrief/planhtml). #efl-pdf-html-inner
+   holds the actual content and is scaled as a whole to fit the available width (see
+   fitPdfHtmlToWidth() in app.js) rather than reflowed - the OFP's tabular sections are
+   space-padded monospace text, not real HTML tables, so word-wrapping would scramble their
+   column alignment where a uniform zoom-to-fit keeps it intact at any window size. The outer
+   wrapper clips to whatever height JS assigns it (the scaled content's actual height) and
+   hides the sliver of unscaled overflow transform leaves in the layout box otherwise. */
+.efl-pdf-html {
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--efl-line);
+  border-radius: 8px;
+  padding: 4px 12px;
+}
+
+/* margin:0 auto centers this in the extra room whenever the window is wider than the OFP's
+   own natural width (the scale JS applies is capped at 1 in that case, so this is the only
+   thing positioning it - see fitPdfHtmlToWidth() in app.js). When the content is instead wider
+   than the available space and has to shrink to fit, auto margins have no slack to distribute
+   and correctly resolve to 0 per normal CSS overflow rules - it stays flush left exactly as
+   before, keeping the tested top-left-origin shrink math untouched. */
+.efl-pdf-html-inner {
+  width: max-content;
+  margin: 0 auto;
+}
+
+/* ============================== Fuel/FMC (SimBrief fuel-plan table replica) ============================== */
+
+.fmc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.fmc-table thead th {
+  background: var(--efl-blue);
+  color: #fff;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 8px 10px;
+}
+
+.fmc-table thead th:nth-child(3),
+.fmc-table thead th:nth-child(4) {
+  width: 90px;
+}
+
+.fmc-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.fmc-label {
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+.fmc-arpt {
+  width: 64px;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.fmc-table input[type="number"],
+.fmc-table input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 14px;
+  color: #111827;
+  background: #fff;
+}
+
+.fmc-table input:focus {
+  outline: none;
+  border-color: var(--efl-blue);
+}
+
+/* SimBrief's own planning figures, and PIC Discr - shown for reference, never typed, so
+   plain text rather than an input box (only Block Fuel and Total Fuel are actual inputs). */
+.fmc-static {
+  color: #4b5563;
+  padding-left: 9px;
+}
+
+/* Removes the browser's native up/down step arrows - same reasoning as the Flight Log
+   tab's .fuel-box inputs, this is a data entry table, not a counter. */
+.fmc-table input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.fmc-table input::-webkit-outer-spin-button,
+.fmc-table input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.fmc-row-spacer td {
+  padding: 6px 0;
+  border-bottom: none;
+}
+
+/* Block Fuel is the figure a crew actually signs off on - given the same dark emphasis it
+   gets in the reference EFB's own fuel table. */
+.fmc-row-highlight {
+  background: #1e293b;
+}
+
+.fmc-row-highlight .fmc-label,
+.fmc-row-highlight .fmc-static {
+  color: #fff;
+}
+
+.fmc-row-highlight td {
+  border-bottom-color: #1e293b;
+}
+
+/* SimBrief's own step-climb string, shown verbatim - not editable, since it's re-derived
+   from the flight plan on every import same as the rest of the Fuel/FMC table's reference
+   rows (see general.stepclimb_string in SimBriefFlightPlan.cs). */
+.fmc-steps {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: "Consolas", "SFMono-Regular", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #111827;
+  word-break: break-all;
+}
+
+/* Reference-only flight-plan figures - a light gray backdrop with each labelled group as its
+   own white card, rather than the rest of this tab's continuous white sheet. Matches a real
+   EFB's own "flight info" panel look. */
+.fmc-info-panel {
+  background: #e9edf3;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fmc-info-group {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fmc-info-row {
+  display: flex;
+}
+
+.fmc-info-row > span {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  overflow-wrap: break-word;
+}
+
+.fmc-info-header {
+  background: var(--efl-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.fmc-info-header > span + span {
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.fmc-info-value {
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  align-items: center;
+  position: relative;
+}
+
+.fmc-info-value > span + span {
+  border-left: 1px solid #e5e7eb;
+}
+
+.fmc-copy-btn {
+  margin: 6px 10px 6px auto;
+  flex-shrink: 0;
+  background: #eef1f6;
+  border: 1px solid #cbd5e1;
+  color: var(--efl-blue);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fmc-copy-btn:active {
+  transform: scale(0.96);
+}
+
+/* One line per "what if" scenario SimBrief actually computed for this flight (see
+   OperationalImpact/ParseOperationalImpacts) - plain text list in a single white box, same
+   idea as .fmc-steps just above it. */
+.fmc-impacts {
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 12px;
+}
+
+.fmc-impacts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  padding: 7px 0;
+  border-bottom: 1px solid #e5e7eb;
+  font-family: "Consolas", "SFMono-Regular", Menlo, monospace;
+  font-size: 13px;
+}
+
+.fmc-impacts-row:last-child {
+  border-bottom: none;
+}
+
+.fmc-impacts-label {
+  flex: 1 1 180px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.fmc-impacts-value {
+  flex: 0 0 auto;
+  color: #4b5563;
+}
+
+/* Above/Below-style switch for a row where SimBrief computed both directions - same visual
+   language as .fuel-choice-toggle, just smaller to fit this compact row. Deliberately a
+   different class so it doesn't get swept up by the Flight Log tab's delegated autosave
+   click listener, which only reacts to .fuel-sign-opt/.fuel-choice-opt - there's nothing to
+   save here, it's just picking which side's numbers to display. */
+.fmc-impact-toggle {
+  display: flex;
+  background: #eef1f6;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.fmc-impact-toggle-opt {
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.fmc-impact-toggle-opt.selected {
+  background: var(--efl-blue);
+  color: #fff;
+}
+
+.fmc-impact-toggle-opt:active {
+  transform: scale(0.96);
+}
+
+/* ============================== Waypoints ============================== */
+
+/* Not a card any more - each waypoint is a full-bleed row in one continuous white document,
+   separated from the next by a single hairline rule, exactly as the reference prints them. */
+.wp-card {
+  background: #fff;
+  border-bottom: 1px solid var(--efl-line);
+  margin: 0 -16px;
+}
+
+/* Every card is collapsible by clicking its header - the chevron rotates to show state, and
+   .wp-card-collapsed just hides the grid below rather than removing it, so nothing needs
+   rebuilding when it's reopened. Off Block and both ICAO cards start expanded (see
+   defaultOpen in buildWaypointCardList()); every navlog fix starts collapsed, since a long
+   route can have dozens of them. */
+.wp-card-title {
+  background: #fff;
+  padding: 12px 16px;
+  font-weight: 700;
+  color: var(--efl-text);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+/* Ordered to the far right of the header row (the reference puts the collapse control at the
+   trailing edge, past the time), while staying first in the DOM so the row still reads
+   name-then-detail to a screen reader. */
+.wp-card-chevron {
+  order: 3;
+  flex-shrink: 0;
+  margin-left: 14px;
+  color: var(--efl-muted);
+  font-size: 13px;
+  transition: transform 0.15s ease;
+}
+
+.wp-card-title-right {
+  order: 2;
+}
+
+.wp-card-collapsed .wp-card-chevron {
+  transform: rotate(-90deg);
+}
+
+.wp-card-collapsed .wp-card-grid {
+  display: none;
+}
+
+/* Time sits on top, temperature/wind (when SimBrief has them for this fix) sit below it as a
+   smaller, muted second line - same right-aligned corner, just two lines instead of one. */
+.wp-card-title-right {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.3;
+}
+
+.wp-card-title-time {
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.wp-card-title-wx {
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.wp-card-grid {
+  display: grid;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 0 16px 16px;
+}
+
+.wp-card-grid-3col {
+  grid-template-columns: 96px 1fr 1fr;
+}
+
+.wp-card-grid-4col {
+  grid-template-columns: 96px 1fr 1fr 1fr;
+}
+
+/* Column headers and row labels are the same blue, same weight, and deliberately NOT
+   uppercased - the reference prints them as "Time" / "Fuel on Board" / "Planned" in mixed
+   case, and the text already arrives that way from app.js. */
+.wp-col-label {
+  color: var(--efl-blue);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.wp-row-label {
+  color: var(--efl-blue);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.wp-static {
+  color: var(--efl-text);
+  font-size: 14px;
+}
+
+.wp-diff {
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 14px;
+}
+
+.wp-diff-green {
+  color: #16a34a;
+}
+
+.wp-diff-red {
+  color: #dc2626;
+}
+
+/* Every Actual cell (Time, Fuel on Board, Burn) is a diff line stacked above the input, not
+   just Time like before - .wp-input-clear is the outer stack, .wp-input-clear-row is the
+   input+clear-button row within it. */
+.wp-input-clear {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wp-input-clear-row {
+  position: relative;
+  display: flex;
+}
+
+.wp-input-clear-row input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--efl-field-border);
+  border-radius: 7px;
+  padding: 9px 32px 9px 12px;
+  font-size: 15px;
+  color: var(--efl-text);
+  background: #fff;
+}
+
+.wp-input-clear-row input:focus {
+  outline: none;
+  border-color: var(--efl-blue);
+}
+
+.wp-input-clear-row input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.wp-input-clear-row input::-webkit-outer-spin-button,
+.wp-input-clear-row input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* The derived Burn cell - the reference shows these as a solid gray block with no field
+   border, which reads clearly as "computed for you, not typed". */
+.wp-input-clear-row input[readonly] {
+  background: #b5b8bd;
+  border-color: #b5b8bd;
+  color: #1f2328;
+  text-align: right;
+  cursor: not-allowed;
+}
+
+.wp-clear-btn {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: none;
+  background: #1f2328;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================== Departure ATIS / ATC Clearance ============================== */
+
+.fmc-atis-box {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fmc-atis-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: #111827;
+  overflow-wrap: break-word;
+}
+
+.fmc-atis-text:empty::before {
+  content: "Not filled in yet.";
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.fmc-atis-change {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--efl-blue);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Full-screen editing overlay shared by both Departure ATIS and Departure ATC Clearance
+   (see openAtisModal()/wireAtisClearanceEditor() in app.js) - which fields it shows depends
+   on which "Change" button opened it. */
+.atis-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+}
+
+.atis-modal-overlay.hidden {
+  display: none;
+}
+
+.atis-modal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.atis-modal-header {
+  flex-shrink: 0;
+  background: #1e293b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.atis-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.atis-modal-actions {
+  display: flex;
+  gap: 20px;
+}
+
+.atis-modal-actions button {
+  background: none;
+  border: none;
+  color: #7fb2ff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+#atis-modal-done {
+  color: #fff;
+}
+
+.atis-modal-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+  padding: 18px;
+  align-content: start;
+}
+
+.atis-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.atis-field-label {
+  background: var(--efl-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 6px 10px;
+  border-radius: 6px 6px 0 0;
+}
+
+.atis-field input {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 10px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.atis-field input:focus {
+  outline: none;
+  border-color: var(--efl-blue);
+}
+
+.atis-field input[readonly] {
+  background: #f1f5f9;
+  color: #6b7280;
+}
+
+.atis-field select {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 10px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.atis-field select:focus {
+  outline: none;
+  border-color: var(--efl-blue);
+}
+
+/* Vis is the one field edited as two controls (a number and a KM/SM unit) but still saved
+   and displayed as a single "value UNIT" string - see splitUnitValue()/readAtisFieldValue()
+   in app.js. */
+.atis-field-compound {
+  display: flex;
+}
+
+.atis-field-compound input {
+  flex: 1;
+  min-width: 0;
+  border-radius: 0 0 0 6px;
+}
+
+.atis-field-compound select {
+  flex: 0 0 auto;
+  border-left: none;
+  border-radius: 0 0 6px 0;
+}
+
+/* ============================== Documents ============================== */
+/* Sits directly on the wallpaper, like Settings and the VPT calculator - not inside a white
+   .efl-sheet the way EFL's own Weather tab is. The page viewer itself reuses .wx-page/
+   .wx-pager/.wx-chart-img as-is (the pager is a self-contained white pill and the image is
+   just an image, so neither needs a white backdrop to look right) - only the list and back
+   link below are new, styled for the dark-wallpaper backdrop instead. */
+
+.doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.doc-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.doc-list-item:active {
+  transform: scale(0.98);
+}
+
+.doc-list-name {
+  font-size: 15px;
+  font-weight: 600;
+  text-shadow: var(--text-shadow);
+}
+
+.doc-list-pages {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+}
+
+.doc-folder-path {
+  font-family: "SF Mono", Consolas, monospace;
+  font-size: 12px;
+}
+
+.doc-back-btn {
+  display: inline-block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 16px;
+  color: #fff;
+  text-shadow: var(--text-shadow);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.doc-back-btn:active {
+  opacity: 0.7;
+}
+
+.doc-page-input {
+  width: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  text-align: center;
+  color: #374151;
+  -moz-appearance: textfield;
+}
+
+.doc-page-input::-webkit-outer-spin-button,
+.doc-page-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.doc-page-input:focus {
+  outline: none;
+  border-color: var(--efl-blue);
+}
+
+/* ============================== Dispatch app ============================== */
+/* A modern tablet-app layout - flat translucent cards on #detail-screen's own dark/glass
+   background (same family as Settings/VPT/Documents), sans-serif throughout except the
+   tabular-nums weight figures and raw METAR/ATIS text (see .wx-raw). Three pieces stack top to
+   bottom: the loadsheet document card(s) (see .ls-card), the request/reply message log, then
+   the action buttons. */
+
+.dispatch-app {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#dispatch-loadsheets {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---- Loadsheet document cards ---- */
+
+.ls-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+/* The final loadsheet is the one that actually needs attention - a blue-tinted card makes it
+   read as the primary document, with the preliminary one (below it, informational only)
+   staying visually quieter. */
+.ls-card-final {
+  background: rgba(63, 127, 214, 0.16);
+  border-color: rgba(63, 127, 214, 0.5);
+}
+
+.ls-card-prelim {
+  opacity: 0.9;
+}
+
+.ls-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.ls-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: var(--text-shadow);
+}
+
+.ls-card-edno {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.ls-card-sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 2px 0 10px;
+}
+
+.ls-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.ls-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.ls-row {
+  display: flex;
+  align-items: baseline;
+  padding: 3px 0;
+  font-size: 13px;
+}
+
+.ls-row-label {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.ls-row-value {
+  flex: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  font-weight: 600;
+}
+
+.ls-row-max {
+  width: 110px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11.5px;
+  margin-left: 10px;
+}
+
+.ls-row-over .ls-row-value,
+.ls-row-over .ls-row-max {
+  color: #ff8a7a;
+}
+
+.ls-pax-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ls-cargo-row {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.ls-pax-total {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: var(--text-shadow);
+}
+
+.ls-status {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ls-status-accepted {
+  color: #6fd68f;
+}
+
+.ls-status-denied {
+  color: #ff8a7a;
+}
+
+.ls-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* Both start fully colored/clickable (available) and only grey out while a decision is being
+   saved (see decideFinalLoadsheet in app.js) or once one's already been made - not disabled by
+   default, since the whole point is they're immediately usable the moment the card appears. */
+.ls-btn {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.ls-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ls-btn-accept {
+  background: #2fa860;
+  color: #fff;
+}
+
+.ls-btn-deny {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 138, 122, 0.45);
+  color: #ff9d90;
+}
+
+.ls-btn-efl {
+  background: var(--efl-blue);
+  color: #fff;
+}
+
+/* ---- Message log ---- */
+
+.dispatch-log-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.dispatch-log {
+  max-height: 40vh;
+  min-height: 110px;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dispatch-msg {
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dispatch-msg-out {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.dispatch-msg-in {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.dispatch-msg-meta {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 3px;
+}
+
+.dispatch-msg-body {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: #fff;
+}
+
+.dispatch-msg-out .dispatch-msg-body {
+  background: var(--efl-blue);
+}
+
+.dispatch-msg-pending .dispatch-msg-body {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dispatch-msg-error .dispatch-msg-body {
+  background: rgba(220, 60, 50, 0.28);
+  color: #ffb4a8;
+}
+
+.dispatch-msg-body .wx-raw {
+  margin: 2px 0 0;
+}
+
+/* Every real incoming message gets one of these (see addDispatchPrintButton in app.js) - a
+   quiet ghost pill rather than anything as prominent as the bubble itself. */
+.dispatch-print-btn {
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+}
+
+.dispatch-print-btn:active {
+  transform: scale(0.96);
+}
+
+.dispatch-print-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ---- Composer + action buttons ---- */
+
+.dispatch-entry {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.dispatch-entry-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.dispatch-entry-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dispatch-entry input {
+  border: none;
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.dispatch-entry-send {
+  flex-shrink: 0;
+  background: var(--efl-blue);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dispatch-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dispatch-action-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  cursor: pointer;
+}
+
+.dispatch-action-btn:active {
+  transform: scale(0.97);
+}
+
+.dispatch-action-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ============================== Settings segmented control ============================== */
+/* Used by the Dispatch section's data-source picker (SayIntentions.AI vs. VATSIM) - a row of
+   mutually-exclusive buttons rather than a dropdown, since there are only ever two options. */
+
+.settings-segmented {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.settings-segmented-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: var(--text-shadow);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-segmented-btn.selected {
+  background: var(--efl-blue);
+  border-color: var(--efl-blue);
+  color: #fff;
+}
+
+/* ============================== Loadsheet notification ============================== */
+/* A small floating pill, fixed top-left across every screen (not just home) - shown when the
+   Dispatch app's automatic loadsheet fires (see checkLoadsheetNotifications in app.js).
+   Clicking it opens Dispatch. */
+
+.loadsheet-notif {
+  position: fixed;
+  top: 50px;
+  left: 14px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  padding: 10px 14px 10px 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  max-width: 260px;
+  animation: loadsheet-notif-in 0.25s ease;
+}
+
+.loadsheet-notif.hidden {
+  display: none;
+}
+
+.loadsheet-notif:active {
+  transform: scale(0.97);
+}
+
+.loadsheet-notif-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #2f7dc2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loadsheet-notif-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.loadsheet-notif-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.loadsheet-notif-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.loadsheet-notif-sub {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes loadsheet-notif-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

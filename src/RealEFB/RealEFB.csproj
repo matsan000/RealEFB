@@ -1,0 +1,106 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>RealEFB</AssemblyName>
+    <RootNamespace>RealEFB</RootNamespace>
+    <Version>0.1.0</Version>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
+
+    <!-- Without a RuntimeIdentifier, the SDK doesn't know which platform this will run on at
+         build time, so it stages every RID's native assets under bin\...\runtimes\ (PDFtoImage/
+         SkiaSharp's PDFium binaries and WebView2's own loader, each for win-x64, win-x86,
+         win-arm64, linux-*, osx-*, ...) so whichever one ends up running can find its match -
+         that's most of where the size came from. This app is WinForms + WebView2 + the vendored
+         SimConnect DLLs, so win-x64 is the only RID it can ever actually run under; pinning it
+         here means only that one's native assets get copied, and the rest are never staged in
+         the first place.
+         SelfContained is off - the .NET runtime itself (System.Private.CoreLib.dll,
+         System.Windows.Forms.dll, coreclr.dll, ...) is what actually made the publish folder
+         balloon to ~390 files once it was on, and PublishSingleFile (which would have hidden all
+         of that inside one exe) turned out to be incompatible with the vendored SimConnect
+         assembly - it's a mixed native/managed assembly (wraps SimConnect.dll via C++/CLI) that
+         single-file's bundler can't embed correctly, so that route's out. Staying off keeps the
+         publish output small and just RealEFB's own files, at the cost of needing .NET 10
+         Desktop Runtime already on the machine it runs on - Windows prompts for that itself
+         (with a direct download link) the first time someone runs RealEFB.exe without it. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The SDK's default wwwroot Content items only copy on publish, not a plain build -
+         force them to copy on build too so `dotnet build` + running the exe directly works
+         for local dev, not just after a full publish. -->
+    <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+
+    <!-- Self-contained publish means the output folder is RealEFB.exe plus every .NET runtime/
+         WinForms DLL it needs (~390 files) - single-file would have hidden all of that inside
+         one exe, but that broke the vendored SimConnect assembly (see the PublishSingleFile note
+         further down), so it's staying multi-file. This is the low-risk fallback for "which one
+         of these is actually the app" - the only file that says so. -->
+    <None Include="README.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4129.50" />
+    <!-- Renders the Documents tab's PDFs into page images (see /api/documents/page in
+         Program.cs) - wraps PDFium natively, no external tool/install needed. -->
+    <PackageReference Include="PDFtoImage" Version="5.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- MSFS SDK2024 SimConnect client, not on NuGet - vendored from SimCallouts/SimPrinter's
+         copy (same Microsoft redistributables, not tied to those projects). A mixed native/
+         managed assembly (it wraps SimConnect.dll via C++/CLI) - see the PublishSingleFile note
+         above for why that rules out single-file publishing for this project. -->
+    <Reference Include="Microsoft.FlightSimulator.SimConnect">
+      <HintPath>lib\SimConnect\Microsoft.FlightSimulator.SimConnect.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <None Include="lib\SimConnect\SimConnect.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>SimConnect.dll</Link>
+    </None>
+    <None Include="lib\SimConnect\MSVCP140.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>MSVCP140.dll</Link>
+    </None>
+    <None Include="lib\SimConnect\VCRUNTIME140.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>VCRUNTIME140.dll</Link>
+    </None>
+    <None Include="lib\SimConnect\VCRUNTIME140_1.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>VCRUNTIME140_1.dll</Link>
+    </None>
+  </ItemGroup>
+
+  <!-- A few files NuGet packages copy to output that nothing at runtime ever reads - SkiaSharp's
+       ~85MB native debug-symbols file (libSkiaSharp.pdb, for debugging into SkiaSharp's own
+       native code, which RealEFB never does) and WebView2's three API-documentation XML files
+       (IntelliSense doc comments, not needed once the app is actually built). Removing these
+       from the copy-to-output item lists mid-build didn't stick - later SDK targets (publish's
+       ComputeResolvedFilesToPublishList in particular) recompute that list from scratch rather
+       than respect an earlier edit - so this just deletes them after Build/Publish have already
+       copied them, once they're guaranteed to actually be sitting in the output/publish folder. -->
+  <Target Name="TrimUnneededOutputFiles" AfterTargets="Build;Publish">
+    <ItemGroup>
+      <_UnneededOutputFile Include="$(OutDir)libSkiaSharp.pdb" Condition="'$(OutDir)' != ''" />
+      <_UnneededOutputFile Include="$(OutDir)Microsoft.Web.WebView2.Core.xml" Condition="'$(OutDir)' != ''" />
+      <_UnneededOutputFile Include="$(OutDir)Microsoft.Web.WebView2.WinForms.xml" Condition="'$(OutDir)' != ''" />
+      <_UnneededOutputFile Include="$(OutDir)Microsoft.Web.WebView2.Wpf.xml" Condition="'$(OutDir)' != ''" />
+      <_UnneededOutputFile Include="$(PublishDir)libSkiaSharp.pdb" Condition="'$(PublishDir)' != ''" />
+      <_UnneededOutputFile Include="$(PublishDir)Microsoft.Web.WebView2.Core.xml" Condition="'$(PublishDir)' != ''" />
+      <_UnneededOutputFile Include="$(PublishDir)Microsoft.Web.WebView2.WinForms.xml" Condition="'$(PublishDir)' != ''" />
+      <_UnneededOutputFile Include="$(PublishDir)Microsoft.Web.WebView2.Wpf.xml" Condition="'$(PublishDir)' != ''" />
+    </ItemGroup>
+    <Delete Files="@(_UnneededOutputFile)" Condition="Exists('%(_UnneededOutputFile.Identity)')" />
+  </Target>
+
+</Project>
