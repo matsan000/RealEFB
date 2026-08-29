@@ -1267,6 +1267,11 @@ let lastNotifiedPrelimKey = null;
 let lastNotifiedFinalKey = null;
 
 async function checkLoadsheetNotifications() {
+  // A "tap to view Dispatch" notification has nowhere useful to go if Dispatch's own tile is
+  // switched off in Settings > Apps - skip the poll entirely rather than surface a notification
+  // for a screen the pilot deliberately hid.
+  if (!appEnabled("dispatch")) return;
+
   let data;
   try {
     const res = await fetch("/api/dispatch/loadsheet", { cache: "no-store" });
