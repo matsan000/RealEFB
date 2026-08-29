@@ -1,17 +1,17 @@
 {
   "content": [
     {
-      "path": "html_ui/InGamePanels/RealEFBPanel/RealEFBPanel.css",
+      "path": "html_ui/ingamePanels/RealEFBPanel/RealEFBPanel.css",
       "size": 894,
       "date": 134324798240917966
     },
     {
-      "path": "html_ui/InGamePanels/RealEFBPanel/RealEFBPanel.html",
+      "path": "html_ui/ingamePanels/RealEFBPanel/RealEFBPanel.html",
       "size": 1546,
       "date": 134324798240917966
     },
     {
-      "path": "html_ui/InGamePanels/RealEFBPanel/RealEFBPanel.js",
+      "path": "html_ui/ingamePanels/RealEFBPanel/RealEFBPanel.js",
       "size": 1979,
       "date": 134324798240917966
     },
