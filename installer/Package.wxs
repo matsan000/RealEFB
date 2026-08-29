@@ -7,7 +7,7 @@
        regenerate it for later versions. -->
   <Package Name="RealEFB"
             Manufacturer="matsan000"
-            Version="0.1.1"
+            Version="$(var.Version)"
             UpgradeCode="7d3b0677-874c-4028-aebf-3f99a18e5587"
             Compressed="yes">
 
