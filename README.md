@@ -12,7 +12,7 @@ RealEFB runs as a Windows desktop app and serves its own interface over your LAN
 - **Log Flight** — saves a flight-log PDF straight to `Documents\RealEFB Documents\FlightLogs` on the PC running RealEFB. Works the same from the desktop app or any tablet on the network — it's a plain request either way.
 - **Dispatch** — preliminary/final loadsheets, gate requests, and weather via SayIntentions.AI or VATSIM.
 - **Documents** — a local PDF viewer for anything dropped into your `Documents\RealEFB Documents` folder.
-- **Website Apps** — add any site as its own home-screen app, with your own name, URL, and (optionally) an icon you upload yourself. Seeded with SimBrief Dispatch, MSFS Flight Planner, and Navigraph Charts Web — all editable or removable. Embedded in the app on desktop, opened as a new tab on a tablet's browser.
+- **Website Apps** — add any site as its own home-screen app, with your own name, URL, and (optionally) an icon you upload yourself. Seeded with SimBrief Dispatch, MSFS Flight Planner, and Navigraph Charts Web — all editable or removable. One-click presets are also offered for [SimPrinter](https://github.com/matsan000/SimPrinter) and [SimCallouts](https://github.com/matsan000/SimCallouts)' own local web dashboards, if you run either. Embedded in the app on desktop, opened as a new tab on a tablet's browser.
 - **Live sim data** — reads aircraft state from Microsoft Flight Simulator via SimConnect when it's running.
 
 ## Requirements
