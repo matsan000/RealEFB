@@ -14,6 +14,14 @@
     <MajorUpgrade DowngradeErrorMessage="A newer version of RealEFB is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
+    <!-- WixUI_InstallDir's own dialog set (specifically the "change install folder" browse
+         dialog) reads this property to know which directory Id it's actually letting the user
+         redirect - without it, the dialog sequence has nothing to bind to and Next fails with a
+         generic, unhelpful "unexpected error ... error code is 2819" the moment it's reached
+         (right after accepting the license). This is a well-documented, easy-to-miss
+         requirement specific to WixUI_InstallDir - WixUI_Minimal/WixUI_Mondo don't need it. -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
     <ui:WixUI Id="WixUI_InstallDir" />
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
 
