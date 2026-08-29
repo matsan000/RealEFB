@@ -1,0 +1,63 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!-- UpgradeCode must never change across releases - it's what lets a future MSI recognize
+       "this is an upgrade of RealEFB", not a separate product, and cleanly remove the old
+       version first (see MajorUpgrade below). Generated once for this project; do not
+       regenerate it for later versions. -->
+  <Package Name="RealEFB"
+            Manufacturer="matsan000"
+            Version="0.1.0"
+            UpgradeCode="7d3b0677-874c-4028-aebf-3f99a18e5587"
+            Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of RealEFB is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="RealEFB" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="RealEFB">
+        <Component Id="StartMenuShortcut" Guid="4a7a6b8a-4c3a-4f6c-9c9a-6e6a7c3e9a51">
+          <Shortcut Id="StartMenuShortcutFile"
+                    Name="RealEFB"
+                    Description="A self-hosted Electronic Flight Bag"
+                    Target="[INSTALLFOLDER]RealEFB.exe"
+                    WorkingDirectory="INSTALLFOLDER" />
+          <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+          <RegistryValue Root="HKCU" Key="Software\RealEFB" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="9b6f2e0d-2a7b-4a4d-8f2b-1a5c7e6b3d92">
+        <Shortcut Id="DesktopShortcutFile"
+                  Name="RealEFB"
+                  Description="A self-hosted Electronic Flight Bag"
+                  Target="[INSTALLFOLDER]RealEFB.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\RealEFB" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- Every file from the published build, one Component per file - WiX v5's glob-based
+         harvesting (replacing the old separate heat.exe pre-build step from v3/v4), so this
+         never needs hand-updating when a NuGet dependency adds, removes, or renames a DLL. -->
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)**" />
+    </ComponentGroup>
+
+    <Feature Id="MainFeature" Title="RealEFB" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+  </Package>
+</Wix>

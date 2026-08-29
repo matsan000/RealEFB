@@ -1,0 +1,21 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+
+  <PropertyGroup>
+    <!-- Points Package.wxs's <Files Include="$(var.PublishDir)**" /> at a real, already-
+         published build - this project doesn't build RealEFB itself, it just packages whatever
+         is sitting in that folder. Run `dotnet publish -c Release` on src\RealEFB\RealEFB.csproj
+         first. -->
+    <PublishDir>..\src\RealEFB\bin\Release\net10.0-windows\win-x64\publish\</PublishDir>
+    <OutputName>RealEFB-Setup</OutputName>
+    <DefineConstants>PublishDir=$(PublishDir)</DefineConstants>
+    <!-- Without this, the auto-generated file Components default to 32-bit while INSTALLFOLDER
+         (under ProgramFiles64Folder) is 64-bit - ICE80 fails the build over that mismatch.
+         RealEFB itself only ever publishes win-x64 (see RealEFB.csproj's RuntimeIdentifier). -->
+    <Platform>x64</Platform>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+
+</Project>
