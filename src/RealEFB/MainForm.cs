@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
 namespace RealEFB;
@@ -52,6 +53,14 @@ internal sealed class MainForm : Form
     };
     private readonly Label _siteTitle = new() { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
 
+    // Shared by every WebView2 control below - all three need to be given the *same*
+    // environment object, not just equivalent ones, so they behave as one coherent browser
+    // instance (same cookie jar for _siteView's OAuth sign-ins, same cache/profile on disk).
+    // Created once in Load, before any of them call EnsureCoreWebView2Async; never null by the
+    // time OpenEmbeddedSiteAsync can actually be reached (that only happens via a page message
+    // the loaded UI sends, and the UI isn't loaded until after Load has already set this).
+    private CoreWebView2Environment? _webViewEnvironment;
+
     internal MainForm(string localUrl)
     {
         _localUrl = localUrl;
@@ -92,7 +101,20 @@ internal sealed class MainForm : Form
 
         Load += async (_, _) =>
         {
-            await _webView.EnsureCoreWebView2Async();
+            // WebView2 defaults to creating its user-data folder (cache, cookies, GPU cache,
+            // ...) right next to the executable when no environment is given - fine for a dev
+            // build run straight out of bin\, but the installed copy lives in Program Files,
+            // which a standard (non-admin) user can't write to, so that default throws
+            // E_ACCESSDENIED the instant the first WebView2 control tries to initialize.
+            // %LocalAppData% is always writable by whoever's running the app and is the right
+            // place for machine-local browser-profile-style data - unlike %AppData%\RealEFB,
+            // which is where AppSettings.cs keeps small roaming settings.
+            var userDataFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "RealEFB", "WebView2");
+            _webViewEnvironment = await CoreWebView2Environment.CreateAsync(userDataFolder: userDataFolder);
+
+            await _webView.EnsureCoreWebView2Async(_webViewEnvironment);
 
             // Links with target="_blank" (the SimBrief OFP PDF, say) would otherwise open in
             // a brand-new WebView2-hosted popup window - not useful here. Cancel that and
@@ -127,7 +149,7 @@ internal sealed class MainForm : Form
             // _printView's own bridge - see PrintFlightLogCoreAsync/print-flightlog.js. Set up
             // eagerly here rather than lazily on first print, so the very first Log Flight
             // doesn't pay EnsureCoreWebView2Async's startup cost on top of everything else.
-            await _printView.EnsureCoreWebView2Async();
+            await _printView.EnsureCoreWebView2Async(_webViewEnvironment);
             _printView.CoreWebView2.WebMessageReceived += (_, e) =>
             {
                 var json = e.TryGetWebMessageAsString();
@@ -150,7 +172,7 @@ internal sealed class MainForm : Form
 
     private async Task OpenEmbeddedSiteAsync(string url, string title)
     {
-        await _siteView.EnsureCoreWebView2Async();
+        await _siteView.EnsureCoreWebView2Async(_webViewEnvironment);
 
         // Wired once, not per open - EnsureCoreWebView2Async returns immediately on later calls
         // and the same CoreWebView2 persists, so re-subscribing here would stack a fresh handler
