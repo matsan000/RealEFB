@@ -299,6 +299,14 @@ function shadeColor(hex, percent) {
 // instead, since Chrome/Android won't render the PDF inline themselves.
 const isDesktopHost = !!(window.chrome && window.chrome.webview);
 
+// Set only by the MSFS in-game toolbar panel's own iframe src (see RealEFBPanel.js in
+// msfs-toolbar-panel/) - never present for the desktop app or a tablet's browser. Website Apps
+// are hidden entirely in this context (both the home-screen tiles and the Settings section that
+// manages them): they're either embedded via window.chrome.webview (desktop-only, doesn't exist
+// inside MSFS's own CoherentGT panel engine) or a plain window.open() new tab, which has nowhere
+// sensible to go from inside the sim's toolbar panel either.
+const isMsfsToolbar = new URLSearchParams(location.search).get("context") === "msfs";
+
 const homeScreen = document.getElementById("home-screen");
 const detailScreen = document.getElementById("detail-screen");
 const detailTitle = document.getElementById("detail-title");
@@ -331,11 +339,15 @@ function makeTileEl(tile) {
 }
 
 // Rebuilds the home grid from whichever apps are currently switched on, plus every Website App
-// (see Settings > Website Apps/webAppToTile) - always shown, since adding one there is already
-// the opt-in; there's no separate on/off switch for these the way built-in apps get in Settings
-// > Apps. Called every time the home screen is (re)shown rather than only at startup, so a
-// change in either place takes effect as soon as the user gets back home, with no restart. A
-// failed settings fetch leaves the previous grid alone rather than blanking the home screen.
+// (see Settings > Website Apps/webAppToTile) - always shown there, since adding one there is
+// already the opt-in; there's no separate on/off switch for these the way built-in apps get in
+// Settings > Apps. Except inside the MSFS toolbar panel (see isMsfsToolbar): opening a Website
+// App there has nowhere sensible to go (no window.chrome.webview, and no reasonable "new tab"
+// either, since this is a fixed panel inside the sim, not a browser), so those tiles are left
+// out entirely rather than shown as dead ends. Called every time the home screen is (re)shown
+// rather than only at startup, so a change in either place takes effect as soon as the user
+// gets back home, with no restart. A failed settings fetch leaves the previous grid alone
+// rather than blanking the home screen.
 async function refreshTiles() {
   let saved = {};
   let webApps = [];
@@ -354,8 +366,10 @@ async function refreshTiles() {
   for (const app of APPS) {
     if (appEnabled(app.id)) tileGrid.appendChild(makeTileEl(app));
   }
-  for (const w of webApps) {
-    tileGrid.appendChild(makeTileEl(webAppToTile(w)));
+  if (!isMsfsToolbar) {
+    for (const w of webApps) {
+      tileGrid.appendChild(makeTileEl(webAppToTile(w)));
+    }
   }
   tileGrid.appendChild(makeTileEl(SETTINGS_TILE));
 }
@@ -3687,7 +3701,7 @@ async function renderSettings() {
   detailBody.innerHTML = `
     <button id="settings-run-wizard" class="settings-wizard-btn">Run Setup Wizard</button>
     ${settingsSectionHtml("apps", "Apps", appsBody)}
-    ${settingsSectionHtml("webapps", "Website Apps", webAppsSectionBodyHtml())}
+    ${isMsfsToolbar ? "" : settingsSectionHtml("webapps", "Website Apps", webAppsSectionBodyHtml())}
     ${settingsSectionHtml("webserver", "Web Server", webServerBody)}
     ${settingsSectionHtml("background", "Background", backgroundBody)}
     ${settingsSectionHtml("simbrief", "SimBrief", simBriefBody)}
@@ -3708,7 +3722,7 @@ async function renderSettings() {
 
   document.getElementById("settings-save").addEventListener("click", saveWebServer);
   document.getElementById("settings-apps-save").addEventListener("click", saveApps);
-  wireWebAppsSection();
+  if (!isMsfsToolbar) wireWebAppsSection();
   document.getElementById("settings-simbrief-save").addEventListener("click", saveSimBrief);
   document.getElementById("settings-dispatch-save").addEventListener("click", saveDispatch);
   document.getElementById("settings-sayintentions-save").addEventListener("click", saveSayIntentions);
