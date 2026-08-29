@@ -874,6 +874,43 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   transform: scale(0.94);
 }
 
+/* Add Website App's quick-add row (see WEBSITE_APP_QUICK_ADD/openWebAppEditor) - only shown
+   when adding new, never while editing an existing entry. Sits above Name/URL since it's meant
+   as a shortcut past those fields, not an addition to them. */
+.webapp-quickadd-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.webapp-quickadd-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #eef1f6;
+  color: var(--efl-blue);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.webapp-quickadd-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--efl-blue);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.webapp-quickadd-btn:active {
+  transform: scale(0.95);
+}
+
 /* Add/Edit Website App - full-screen editor (see openWebAppEditor() in app.js), same
    overlay/header chrome as .atis-modal-overlay/.delay-picker-overlay, but its own light-on-
    dark-header body since unlike either of those this one's mostly plain text inputs. */
@@ -1905,8 +1942,15 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 /* Weather tab - a paged view, one page for the METAR/TAF/SIGMET text and one per chart image.
    .wx-pager sits in the same fixed footer spot .efl-save-bar uses on other tabs (Weather has
    no save handler, so that spot's otherwise empty here). */
+/* padding-bottom clears the fixed .wx-pager pill below (bottom: 90px, ~50px tall) - without
+   it, scrolling a long METAR/TAF text page (page 1) or short chart image only ever gets you as
+   far as the pager itself, which stays pinned on top of the last ~90-140px of content instead
+   of out of the way. .wx-chart-img handles the same overlap differently (capping its own
+   height via calc() so the whole image fits above the pager instead of needing to scroll past
+   it) - this handles it for the page 1 text case, which can run arbitrarily long. */
 .wx-page {
   min-height: 200px;
+  padding-bottom: 130px;
 }
 
 .wx-pager {

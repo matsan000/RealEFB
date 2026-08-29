@@ -15,6 +15,9 @@ const ICONS = {
   // mark. Real per-site logos only ever come from a user's own upload (see openWebAppEditor),
   // never shipped with RealEFB itself - see WebApp.Icon's own note in AppSettings.cs for why.
   webapp: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
+  // Add Website App's quick-add presets (see WEBSITE_APP_QUICK_ADD) - SimPrinter/SimCallouts icons.
+  simprinter: '<svg viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>',
+  simcallouts: '<svg viewBox="0 0 24 24"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14"/><path d="M8 6v8"/></svg>',
 };
 
 // Every built-in app that can appear on the home screen, in the order they appear there. User-
@@ -62,6 +65,29 @@ function appEnabled(id) {
 // renderSettings() call, then mutated in place by the add/edit/delete flow there
 // (openWebAppEditor/deleteWebApp) and posted back wholesale on every change via persistWebApps().
 let webAppsState = [];
+
+// Quick-add presets shown in the Add Website App editor (see openWebAppEditor) - the user's own
+// SimPrinter/SimCallouts, each with a small local dashboard at this standard address (off by
+// default - see each project's own Settings > Web Dashboard). Clicking one just pre-fills the
+// form fields; nothing here checks either app is actually installed or running, same as if the
+// user typed the URL in by hand.
+const WEBSITE_APP_QUICK_ADD = [
+  { id: "simprinter", name: "SimPrinter", url: "http://localhost:39910", icon: "simprinter" },
+  { id: "simcallouts", name: "SimCallouts", url: "http://localhost:39920", icon: "simcallouts" },
+];
+
+// Turns one of ICONS' plain stroke icons into a standalone data: URL, usable anywhere an
+// uploaded Website App icon can be (see openWebAppEditor's iconDataUrl/webAppToTile) - those
+// normally get their stroke/fill from an ancestor's CSS (e.g. .tile-icon svg), which a bare
+// data: URL image has no access to on its own, so this inlines that same white-stroke styling
+// directly onto the root <svg> element instead.
+function iconToDataUrl(svgMarkup) {
+  const styled = svgMarkup.replace(
+    "<svg ",
+    '<svg fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" '
+  );
+  return `data:image/svg+xml;utf8,${encodeURIComponent(styled)}`;
+}
 
 // The 8 sections along the bottom of the loaded-flight EFL screen. No content behind any of
 // them yet - just the navigation shell, filled in later.
@@ -299,14 +325,6 @@ function shadeColor(hex, percent) {
 // instead, since Chrome/Android won't render the PDF inline themselves.
 const isDesktopHost = !!(window.chrome && window.chrome.webview);
 
-// Set only by the MSFS in-game toolbar panel's own iframe src (see RealEFBPanel.js in
-// msfs-toolbar-panel/) - never present for the desktop app or a tablet's browser. Website Apps
-// are hidden entirely in this context (both the home-screen tiles and the Settings section that
-// manages them): they're either embedded via window.chrome.webview (desktop-only, doesn't exist
-// inside MSFS's own CoherentGT panel engine) or a plain window.open() new tab, which has nowhere
-// sensible to go from inside the sim's toolbar panel either.
-const isMsfsToolbar = new URLSearchParams(location.search).get("context") === "msfs";
-
 const homeScreen = document.getElementById("home-screen");
 const detailScreen = document.getElementById("detail-screen");
 const detailTitle = document.getElementById("detail-title");
@@ -341,13 +359,9 @@ function makeTileEl(tile) {
 // Rebuilds the home grid from whichever apps are currently switched on, plus every Website App
 // (see Settings > Website Apps/webAppToTile) - always shown there, since adding one there is
 // already the opt-in; there's no separate on/off switch for these the way built-in apps get in
-// Settings > Apps. Except inside the MSFS toolbar panel (see isMsfsToolbar): opening a Website
-// App there has nowhere sensible to go (no window.chrome.webview, and no reasonable "new tab"
-// either, since this is a fixed panel inside the sim, not a browser), so those tiles are left
-// out entirely rather than shown as dead ends. Called every time the home screen is (re)shown
-// rather than only at startup, so a change in either place takes effect as soon as the user
-// gets back home, with no restart. A failed settings fetch leaves the previous grid alone
-// rather than blanking the home screen.
+// Settings > Apps. Called every time the home screen is (re)shown rather than only at startup,
+// so a change in either place takes effect as soon as the user gets back home, with no restart.
+// A failed settings fetch leaves the previous grid alone rather than blanking the home screen.
 async function refreshTiles() {
   let saved = {};
   let webApps = [];
@@ -366,10 +380,8 @@ async function refreshTiles() {
   for (const app of APPS) {
     if (appEnabled(app.id)) tileGrid.appendChild(makeTileEl(app));
   }
-  if (!isMsfsToolbar) {
-    for (const w of webApps) {
-      tileGrid.appendChild(makeTileEl(webAppToTile(w)));
-    }
+  for (const w of webApps) {
+    tileGrid.appendChild(makeTileEl(webAppToTile(w)));
   }
   tileGrid.appendChild(makeTileEl(SETTINGS_TILE));
 }
@@ -3701,7 +3713,7 @@ async function renderSettings() {
   detailBody.innerHTML = `
     <button id="settings-run-wizard" class="settings-wizard-btn">Run Setup Wizard</button>
     ${settingsSectionHtml("apps", "Apps", appsBody)}
-    ${isMsfsToolbar ? "" : settingsSectionHtml("webapps", "Website Apps", webAppsSectionBodyHtml())}
+    ${settingsSectionHtml("webapps", "Website Apps", webAppsSectionBodyHtml())}
     ${settingsSectionHtml("webserver", "Web Server", webServerBody)}
     ${settingsSectionHtml("background", "Background", backgroundBody)}
     ${settingsSectionHtml("simbrief", "SimBrief", simBriefBody)}
@@ -3722,7 +3734,7 @@ async function renderSettings() {
 
   document.getElementById("settings-save").addEventListener("click", saveWebServer);
   document.getElementById("settings-apps-save").addEventListener("click", saveApps);
-  if (!isMsfsToolbar) wireWebAppsSection();
+  wireWebAppsSection();
   document.getElementById("settings-simbrief-save").addEventListener("click", saveSimBrief);
   document.getElementById("settings-dispatch-save").addEventListener("click", saveDispatch);
   document.getElementById("settings-sayintentions-save").addEventListener("click", saveSayIntentions);
@@ -3920,6 +3932,16 @@ function openWebAppEditor(existing) {
         </div>
       </div>
       <div class="webapp-editor-body">
+        ${
+          isEdit
+            ? ""
+            : `
+        <div class="webapp-quickadd-row">
+          ${WEBSITE_APP_QUICK_ADD.map(
+            (q) => `<button type="button" class="webapp-quickadd-btn" data-quickadd="${q.id}">${ICONS[q.icon]}${escapeAttr(q.name)}</button>`
+          ).join("")}
+        </div>`
+        }
         <label class="webapp-editor-label" for="webapp-editor-name">Name</label>
         <input id="webapp-editor-name" type="text" placeholder="e.g. Navigraph Charts" value="${escapeAttr(existing?.name ?? "")}" />
         <label class="webapp-editor-label webapp-editor-label-spaced" for="webapp-editor-url">URL</label>
@@ -3963,6 +3985,20 @@ function openWebAppEditor(existing) {
     removeBtn.disabled = true;
     overlay.querySelector("#webapp-editor-icon-file").value = "";
   });
+
+  // Quick-add - just pre-fills Name/URL/icon with one preset's values, same as typing them in
+  // by hand; nothing about Save below needs to know a preset was used at all.
+  for (const btn of overlay.querySelectorAll(".webapp-quickadd-btn")) {
+    btn.addEventListener("click", () => {
+      const preset = WEBSITE_APP_QUICK_ADD.find((q) => q.id === btn.dataset.quickadd);
+      if (!preset) return;
+      overlay.querySelector("#webapp-editor-name").value = preset.name;
+      overlay.querySelector("#webapp-editor-url").value = preset.url;
+      iconDataUrl = iconToDataUrl(ICONS[preset.icon]);
+      preview.innerHTML = `<img src="${escapeAttr(iconDataUrl)}" alt="" />`;
+      removeBtn.disabled = false;
+    });
+  }
 
   overlay.querySelector(".webapp-editor-save").addEventListener("click", async () => {
     const status = overlay.querySelector("#webapp-editor-status");
