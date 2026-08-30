@@ -51,7 +51,8 @@ const WEB_APP_TILE_COLOR = "#3d6d94";
 // same "browser" kind the old fixed VPT/SimBrief tiles used, so nothing about opening one is
 // new. "webapp-" prefixed so its DOM id can never collide with a built-in app's.
 function webAppToTile(w) {
-  return { id: `webapp-${w.id}`, label: w.name, color: WEB_APP_TILE_COLOR, kind: "browser", url: w.url, icon: w.icon || null };
+  const color = w.icon && WHITE_BG_WEBAPP_LOGOS.has(w.icon) ? WEB_APP_WHITE_TILE_COLOR : WEB_APP_TILE_COLOR;
+  return { id: `webapp-${w.id}`, label: w.name, color, kind: "browser", url: w.url, icon: w.icon || null };
 }
 
 // App id -> whether its tile is shown, from Settings > Apps. An id that isn't in here yet
@@ -83,6 +84,14 @@ const WEBSITE_APP_QUICK_ADD = [
   { id: "simprinter", name: "SimPrinter", url: "http://localhost:39910", icon: "simprinter", logo: "assets/webapp-icons/simprinter.png" },
   { id: "simcallouts", name: "SimCallouts", url: "http://localhost:39920", icon: "simcallouts", logo: "assets/webapp-icons/simcallouts.png" },
 ];
+
+// These two presets' logos have their own background baked in (white, with the wordmark/icon
+// in each product's own colors) - sitting on the shared blue WEB_APP_TILE_COLOR looked wrong,
+// unlike a generic uploaded icon that's designed to work on any flat color (see webAppToTile).
+// Matched by logo path rather than tile id, since that's exactly the value that ends up as a
+// WebApp's own .icon once added.
+const WHITE_BG_WEBAPP_LOGOS = new Set(WEBSITE_APP_QUICK_ADD.map((p) => p.logo));
+const WEB_APP_WHITE_TILE_COLOR = "#ffffff";
 
 // The 8 sections along the bottom of the loaded-flight EFL screen. No content behind any of
 // them yet - just the navigation shell, filled in later.
