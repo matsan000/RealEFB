@@ -51,8 +51,10 @@ function buildFlightLogReportHtml(fp, entry) {
   const weightUnit = isLbs ? "Lbs" : "Kgs";
   const volumeUnit = isLbs ? "Gal" : "Lts";
   const fmt = (v, unit) => (v === null || v === undefined ? "-" : `${v}${unit ? " " + unit : ""}`);
-  const totalFlight = durationHHMM(entry.airborne, entry.landed);
-  const totalBlock = durationHHMM(entry.offBlock, entry.onBlock);
+  // "-" rather than durationHHMM's own "00:00" fallback until both sides of the pair are
+  // actually recorded - same reasoning as the on-screen form's recomputeTotals in app.js.
+  const totalFlight = entry.airborne && entry.landed ? durationHHMM(entry.airborne, entry.landed) : "-";
+  const totalBlock = entry.offBlock && entry.onBlock ? durationHHMM(entry.offBlock, entry.onBlock) : "-";
 
   const row = (label, value) => `
     <div class="report-row">

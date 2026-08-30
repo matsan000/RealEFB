@@ -186,10 +186,37 @@ internal static class Program
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RealEFB Documents");
         Directory.CreateDirectory(documentsFolder);
 
+        // The Flight Tracker's flown-track trail - recorded here in the backend rather than by
+        // whichever client happens to have the tab open, so it keeps building for the entire
+        // flight even if Flight Tracker is never opened, and so every device (desktop, every
+        // tablet) sees the exact same trail instead of each one only knowing about whatever
+        // portion it personally happened to be watching - see GET /api/flight/trail. Points are
+        // throttled to one every TrailSampleIntervalSeconds of real time rather than every
+        // SimConnect tick (~1/s) so a long flight's trail stays a reasonable size to keep in
+        // memory and send down the wire; TrailMaxPoints is a hard ceiling on top of that, in
+        // case a flight runs long enough for even the throttled rate to add up. Reset on every
+        // fresh SimBrief import (see /api/simbrief/import below), same as the Dispatch
+        // loadsheets - it only makes sense for one specific flight.
+        const int TrailSampleIntervalSeconds = 10;
+        const int TrailMaxPoints = 20_000;
+        var flightTrail = new List<(double Lat, double Lon)>();
+        DateTimeOffset? lastTrailSampleUtc = null;
+        var flightTrailLock = new object();
+
         var simConnectClient = new SimConnectClient();
         simConnectClient.FlightStateUpdated += state =>
         {
             lock (flightLock) { latestFlightState = state; }
+
+            lock (flightTrailLock)
+            {
+                var now = DateTimeOffset.UtcNow;
+                if (lastTrailSampleUtc is null || (now - lastTrailSampleUtc.Value).TotalSeconds >= TrailSampleIntervalSeconds)
+                {
+                    lastTrailSampleUtc = now;
+                    if (flightTrail.Count < TrailMaxPoints) flightTrail.Add((state.Latitude, state.Longitude));
+                }
+            }
         };
         simConnectClient.Connected += () => { lock (flightLock) { simConnected = true; } };
         simConnectClient.Disconnected += () =>
@@ -615,6 +642,16 @@ internal static class Program
             }
         });
 
+        // See flightTrail's own comment above for why this is recorded server-side rather than
+        // by whichever client has Flight Tracker open.
+        app.MapGet("/api/flight/trail", () =>
+        {
+            lock (flightTrailLock)
+            {
+                return Results.Ok(new { points = flightTrail.Select(p => new { lat = p.Lat, lon = p.Lon }) });
+            }
+        });
+
         app.MapGet("/api/simbrief/flightplan", () =>
         {
             lock (flightPlanLock)
@@ -629,6 +666,7 @@ internal static class Program
             {
                 var plan = await SimBriefClient.FetchLatestAsync(settings.SimBriefId);
                 lock (flightPlanLock) { currentFlightPlan = plan; }
+                lock (flightTrailLock) { flightTrail.Clear(); lastTrailSampleUtc = null; }
                 lock (loadsheetLock)
                 {
                     paxSplit = null;

@@ -822,7 +822,6 @@ let trackerInterval = null;
 let trackerFlightPlan = null;
 let trackerAircraftMarker = null;
 let trackerTrail = null;
-let trackerTrailLatLngs = [];
 let trackerFollow = true;
 let trackerHasFix = false;
 
@@ -839,7 +838,6 @@ async function renderFlightTracker() {
   trackerMap = null;
   trackerAircraftMarker = null;
   trackerTrail = null;
-  trackerTrailLatLngs = [];
   trackerFollow = true;
   trackerHasFix = false;
 
@@ -985,8 +983,13 @@ function initTrackerMap(flightPlan) {
       .addTo(trackerMap);
   }
 
-  // The flown-track breadcrumb trail - empty until the first live position arrives.
+  // The flown-track breadcrumb trail - empty until the first fetch in updateTrackerTrail below
+  // fills it in. Points come from the server's own trail (see GET /api/flight/trail), which the
+  // backend keeps recording for the whole flight regardless of whether Flight Tracker is even
+  // open anywhere - so opening this tab mid-flight shows everything flown so far, not just
+  // whatever this one device happens to see from here on.
   trackerTrail = L.polyline([], { color: "#ffb347", weight: 2.5, opacity: 0.9, interactive: false }).addTo(trackerMap);
+  updateTrackerTrail();
 
   // The aircraft marker itself isn't added yet - it only appears once SimConnect actually gives
   // a real position (see updateTrackerPosition), same as a real EFB shows no ownship symbol at
@@ -1002,6 +1005,24 @@ function initTrackerMap(flightPlan) {
     trackerFollow = false;
     document.getElementById("tracker-center-btn")?.classList.remove("active");
   });
+}
+
+// Pulls the server's own flown-track trail (see GET /api/flight/trail) and redraws the
+// breadcrumb polyline from it wholesale, rather than this tab appending its own points locally -
+// the backend is the one authoritative recording of the trail (see its own comment in
+// Program.cs), so every device just displays whatever it currently has instead of keeping a
+// second, potentially-incomplete copy of its own. A failed fetch just leaves the polyline as it
+// was - not worth clearing a trail that's still perfectly valid over one dropped poll.
+async function updateTrackerTrail() {
+  if (!trackerTrail) return;
+  try {
+    const res = await fetch("/api/flight/trail", { cache: "no-store" });
+    if (!res.ok) return;
+    const { points } = await res.json();
+    trackerTrail.setLatLngs((points || []).map((p) => [p.lat, p.lon]));
+  } catch {
+    // Leaves the existing trail as-is - see comment above.
+  }
 }
 
 // Great-circle distance in nautical miles - used for the HUD's destination-distance/ETE figures.
@@ -1083,9 +1104,7 @@ async function updateTrackerPosition() {
   }
   trackerSetAircraftHeading(headingDegreesTrue);
 
-  trackerTrailLatLngs.push(latLng);
-  if (trackerTrailLatLngs.length > 1000) trackerTrailLatLngs.shift();
-  trackerTrail.setLatLngs(trackerTrailLatLngs);
+  updateTrackerTrail();
 
   if (trackerFollow) trackerMap.panTo(latLng, { animate: true, duration: 0.5 });
 }
@@ -3582,16 +3601,19 @@ function autoGrowTextarea(textarea) {
 // file - see index.html), shared with the standalone print/flightlog.html page.
 
 // Total Flight/Total Block are always derived from the other four times, never typed
-// directly - recomputed live as Off Block/Airborne/Landed/On Block change.
+// directly - recomputed live as Off Block/Airborne/Landed/On Block change. Left blank rather
+// than showing durationHHMM's own "00:00" fallback until BOTH sides of the pair are actually
+// in - Landed/On Block only get typed once the flight is over, so showing a total mid-flight
+// off just Off Block/Airborne (with the other end genuinely blank) used to render as a bogus
+// "elapsed since midnight" duration instead of no duration at all.
 function recomputeTotals() {
-  document.getElementById("fuel-totalflight").value = durationHHMM(
-    document.getElementById("fuel-airborne").value,
-    document.getElementById("fuel-landed").value
-  );
-  document.getElementById("fuel-totalblock").value = durationHHMM(
-    document.getElementById("fuel-offblock").value,
-    document.getElementById("fuel-onblock").value
-  );
+  const airborne = document.getElementById("fuel-airborne").value;
+  const landed = document.getElementById("fuel-landed").value;
+  document.getElementById("fuel-totalflight").value = airborne && landed ? durationHHMM(airborne, landed) : "";
+
+  const offBlock = document.getElementById("fuel-offblock").value;
+  const onBlock = document.getElementById("fuel-onblock").value;
+  document.getElementById("fuel-totalblock").value = offBlock && onBlock ? durationHHMM(offBlock, onBlock) : "";
 }
 
 function setChoiceToggle(wrapper, value) {
@@ -3640,23 +3662,33 @@ function buildFlightLogTabHtml(fp, saved, waypointTimes, picDiscrFuel) {
     </div>`;
 
   // Total Flight/Total Block are computed, never typed directly - styled muted so that's
-  // obvious at a glance.
+  // obvious at a glance. Starts blank rather than "00:00" - recomputeTotals fills in a real
+  // value the moment the DOM exists (see its own call in renderFlightLogTab), and leaves it
+  // blank itself whenever the times it needs aren't both in yet, so this initial value never
+  // actually shows on screen either way.
   const readonlyField = (id, label) => `
     <div class="fuel-field">
       <span class="fuel-label">${label}</span>
       <span class="fuel-box fuel-box-readonly">
-        <input type="text" id="fuel-${id}" value="00:00" readonly />
+        <input type="text" id="fuel-${id}" value="" readonly />
       </span>
     </div>`;
 
   // Off Block/Airborne/Landed/On Block are no longer typed here - they mirror whatever the
   // pilot entered as Actual Time on the Waypoints tab (Off Block, Departure ICAO, Arrival
   // ICAO, On Block respectively), so there's exactly one place to type a block time.
+  // Genuinely blank (with a "00:00" placeholder for the same formatting hint the editable
+  // Waypoints tab field itself shows) rather than defaulting the actual value to "00:00" when
+  // nothing's been recorded yet - that used to make an in-progress flight's Landed/On Block
+  // read as "00:00", both misleading on its own and, worse, exactly what fed durationHHMM a
+  // fake real timestamp instead of "nothing yet" (see recomputeTotals). It also used to get
+  // saved as a real "00:00" into the flight log entry itself if Save was hit mid-flight,
+  // corrupting Total Flight/Total Block in the printed report too - see buildFlightLogReportHtml.
   const readonlyTimeField = (id, label, value) => `
     <div class="fuel-field">
       <span class="fuel-label">${label}</span>
       <span class="fuel-box fuel-box-readonly">
-        <input type="text" id="fuel-${id}" value="${escapeAttr(value || "00:00")}" readonly />
+        <input type="text" id="fuel-${id}" placeholder="00:00" value="${escapeAttr(value || "")}" readonly />
       </span>
     </div>`;
 
