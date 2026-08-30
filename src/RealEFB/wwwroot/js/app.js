@@ -360,26 +360,11 @@ function makeTileEl(tile) {
   return el;
 }
 
-// Rebuilds the home grid from whichever apps are currently switched on, plus every Website App
-// (see Settings > Website Apps/webAppToTile) - always shown there, since adding one there is
-// already the opt-in; there's no separate on/off switch for these the way built-in apps get in
-// Settings > Apps. Called every time the home screen is (re)shown rather than only at startup,
-// so a change in either place takes effect as soon as the user gets back home, with no restart.
-// A failed settings fetch leaves the previous grid alone rather than blanking the home screen.
-async function refreshTiles() {
-  let saved = {};
-  let webApps = [];
-  try {
-    const res = await fetch("/api/settings", { cache: "no-store" });
-    if (!res.ok) return;
-    const s = await res.json();
-    saved = s.enabledApps || {};
-    webApps = s.webApps || [];
-  } catch {
-    return;
-  }
-  enabledApps = saved;
-
+// Actually (re)builds the tile grid DOM from a given enabled-apps/webApps pair - split out of
+// refreshTiles so the live poll below (refreshTilesIfChanged) can reuse the exact same build
+// logic without duplicating it.
+function buildTileGrid(enabledAppsObj, webApps) {
+  enabledApps = enabledAppsObj;
   tileGrid.innerHTML = "";
   for (const app of APPS) {
     if (appEnabled(app.id)) tileGrid.appendChild(makeTileEl(app));
@@ -388,6 +373,56 @@ async function refreshTiles() {
     tileGrid.appendChild(makeTileEl(webAppToTile(w)));
   }
   tileGrid.appendChild(makeTileEl(SETTINGS_TILE));
+}
+
+// Last-seen {enabledApps, webApps} straight from the server, as JSON - lets refreshTilesIfChanged
+// (see below) tell "nothing's changed since last time" apart from "something changed", without
+// keeping its own separate deep-equal comparison of the two objects.
+let lastTilesSignature = null;
+
+// Rebuilds the home grid from whichever apps are currently switched on, plus every Website App
+// (see Settings > Website Apps/webAppToTile) - always shown there, since adding one there is
+// already the opt-in; there's no separate on/off switch for these the way built-in apps get in
+// Settings > Apps. Called every time the home screen is (re)shown, and unconditionally rebuilds
+// (unlike refreshTilesIfChanged below) since the caller is specifically asking for a guaranteed-
+// fresh grid right now. A failed settings fetch leaves the previous grid alone rather than
+// blanking the home screen.
+async function refreshTiles() {
+  let s;
+  try {
+    const res = await fetch("/api/settings", { cache: "no-store" });
+    if (!res.ok) return;
+    s = await res.json();
+  } catch {
+    return;
+  }
+  lastTilesSignature = JSON.stringify([s.enabledApps || {}, s.webApps || []]);
+  buildTileGrid(s.enabledApps || {}, s.webApps || []);
+}
+
+// Keeps the home screen from drifting when it's *not* the one that changed anything - e.g. one
+// device edits Website Apps or flips an app's Settings > Apps switch while another device is
+// just sitting on its own home screen the whole time. Without this, a tile grid only ever
+// refreshed when that device itself navigated back to the home screen (see refreshTiles's own
+// comment) - two devices could disagree about which tiles show up indefinitely as long as
+// neither one happened to navigate away and back. Only actually rebuilds the DOM when the
+// fetched settings differ from last time, rather than unconditionally like refreshTiles - most
+// polls find nothing new, and rebuilding every tile from scratch regardless would flicker (or
+// worse, cut off an in-progress :active press animation) for no reason on every one of them.
+async function refreshTilesIfChanged() {
+  if (homeScreen.classList.contains("hidden")) return;
+  let s;
+  try {
+    const res = await fetch("/api/settings", { cache: "no-store" });
+    if (!res.ok) return;
+    s = await res.json();
+  } catch {
+    return;
+  }
+  const signature = JSON.stringify([s.enabledApps || {}, s.webApps || []]);
+  if (signature === lastTilesSignature) return;
+  lastTilesSignature = signature;
+  buildTileGrid(s.enabledApps || {}, s.webApps || []);
 }
 
 const initScreen = document.getElementById("init-screen");
@@ -4945,3 +4980,7 @@ setInterval(checkServerStatus, 10000);
 
 checkLoadsheetNotifications();
 setInterval(checkLoadsheetNotifications, 15000);
+
+// See refreshTilesIfChanged's own comment - keeps every connected device's home screen (desktop
+// and any tablets) in sync with each other without requiring a manual refresh or re-navigation.
+setInterval(refreshTilesIfChanged, 3000);
