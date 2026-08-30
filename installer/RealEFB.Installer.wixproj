@@ -11,7 +11,7 @@
          $(var.Version) (see DefineConstants below) instead of hardcoding its own copy, so the
          built MSI's filename and its actual Package Version can never drift apart from each
          other, even if this project's version falls behind the app's. -->
-    <Version>0.2.2</Version>
+    <Version>0.2.3</Version>
     <OutputName>RealEFB-Setup-$(Version)</OutputName>
     <DefineConstants>PublishDir=$(PublishDir);Version=$(Version)</DefineConstants>
     <!-- Without this, the auto-generated file Components default to 32-bit while INSTALLFOLDER
