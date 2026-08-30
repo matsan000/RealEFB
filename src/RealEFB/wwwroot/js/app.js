@@ -10,6 +10,7 @@ const ICONS = {
   logbook: '<svg viewBox="0 0 24 24"><path d="M12 5v16"/><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"/></svg>',
   settings: '<svg viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>',
   dispatch: '<svg viewBox="0 0 24 24"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>',
+  tracker: '<svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>',
   // The fallback face for a Website App (see WEB_APP_TILE_COLOR/webAppToTile) that hasn't had
   // an icon uploaded for it - a plain generic globe, deliberately not any particular product's
   // mark. Real per-site logos only ever come from a user's own upload (see openWebAppEditor),
@@ -32,6 +33,7 @@ const ICONS = {
 const APPS = [
   { id: "logbook", label: "EFL", color: "#a8712f", kind: "native" },
   { id: "dispatch", label: "Dispatch", color: "#2f7dc2", kind: "native" },
+  { id: "tracker", label: "Flight Tracker", color: "#1f7a4d", kind: "native" },
   { id: "documents", label: "Documents", color: "#5a6b7d", kind: "native" },
 ];
 
@@ -71,23 +73,16 @@ let webAppsState = [];
 // default - see each project's own Settings > Web Dashboard). Clicking one just pre-fills the
 // form fields; nothing here checks either app is actually installed or running, same as if the
 // user typed the URL in by hand.
+//
+// icon (a plain ICONS key) is only for the small line-icon on the quick-add button itself - the
+// tile it actually creates uses logo instead, each project's own real mark (cropped to just the
+// icon, background removed - see wwwroot/assets/webapp-icons and the note in each PNG's own
+// generation history) rather than a generic stand-in, since these are specifically the user's
+// other apps, not an arbitrary uploaded site the "generic globe" fallback is meant for.
 const WEBSITE_APP_QUICK_ADD = [
-  { id: "simprinter", name: "SimPrinter", url: "http://localhost:39910", icon: "simprinter" },
-  { id: "simcallouts", name: "SimCallouts", url: "http://localhost:39920", icon: "simcallouts" },
+  { id: "simprinter", name: "SimPrinter", url: "http://localhost:39910", icon: "simprinter", logo: "assets/webapp-icons/simprinter.png" },
+  { id: "simcallouts", name: "SimCallouts", url: "http://localhost:39920", icon: "simcallouts", logo: "assets/webapp-icons/simcallouts.png" },
 ];
-
-// Turns one of ICONS' plain stroke icons into a standalone data: URL, usable anywhere an
-// uploaded Website App icon can be (see openWebAppEditor's iconDataUrl/webAppToTile) - those
-// normally get their stroke/fill from an ancestor's CSS (e.g. .tile-icon svg), which a bare
-// data: URL image has no access to on its own, so this inlines that same white-stroke styling
-// directly onto the root <svg> element instead.
-function iconToDataUrl(svgMarkup) {
-  const styled = svgMarkup.replace(
-    "<svg ",
-    '<svg fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" '
-  );
-  return `data:image/svg+xml;utf8,${encodeURIComponent(styled)}`;
-}
 
 // The 8 sections along the bottom of the loaded-flight EFL screen. No content behind any of
 // them yet - just the navigation shell, filled in later.
@@ -761,9 +756,294 @@ function openDetail(tile) {
     renderDocuments();
   } else if (tile.id === "dispatch") {
     renderDispatch();
+  } else if (tile.id === "tracker") {
+    renderFlightTracker();
   } else {
     detailBody.innerHTML = `<p class="coming-soon">This section is a placeholder - coming soon.</p>`;
   }
+}
+
+// ============================== Flight Tracker (live moving map) ==============================
+// A Leaflet map (vendored locally - see wwwroot/vendor/leaflet) showing the SimBrief flight
+// plan's route (origin, every navlog fix, destination) plus the aircraft's live SimConnect
+// position, updated on a 2s poll of /api/flight/state - the same endpoint the status bar clock
+// already polls (see checkFlightState). Module-level state below is deliberately not scoped
+// inside renderFlightTracker: the poll loop it starts needs to survive across re-renders of this
+// same function (reopening the tab) and be reachable from updateTrackerPosition's setInterval
+// callback, which itself has to self-cancel once the tab is navigated away from (see the DOM
+// presence check at the top of that function - there's no teardown hook elsewhere in app.js to
+// call this from, every other interval in this file just runs for the app's whole lifetime).
+let trackerMap = null;
+let trackerInterval = null;
+let trackerFlightPlan = null;
+let trackerAircraftMarker = null;
+let trackerTrail = null;
+let trackerTrailLatLngs = [];
+let trackerFollow = true;
+let trackerHasFix = false;
+
+async function renderFlightTracker() {
+  // Full-bleed like EFL's own sheet (#detail-screen:has(.tracker-sheet) in style.css cancels
+  // the screen's normal padding) - a moving map needs the whole screen, and its own header/HUD
+  // overlay makes the generic detail-title redundant.
+  detailTitle.style.display = "none";
+
+  if (trackerInterval) {
+    clearInterval(trackerInterval);
+    trackerInterval = null;
+  }
+  trackerMap = null;
+  trackerAircraftMarker = null;
+  trackerTrail = null;
+  trackerTrailLatLngs = [];
+  trackerFollow = true;
+  trackerHasFix = false;
+
+  detailBody.innerHTML = `<div class="tracker-sheet"><p class="coming-soon">Loading flight plan...</p></div>`;
+
+  let flightPlan = null;
+  try {
+    const res = await fetch("/api/simbrief/flightplan", { cache: "no-store" });
+    if (res.ok) ({ flightPlan } = await res.json());
+  } catch {
+    // Falls through to the empty state below.
+  }
+
+  if (!flightPlan || flightPlan.originLat == null || flightPlan.destLat == null) {
+    detailBody.innerHTML = `
+      <div class="tracker-sheet">
+        <p class="coming-soon">No SimBrief flight plan with route coordinates is loaded yet.</p>
+        <p class="coming-soon">Import a flight plan from the Dispatch or EFL tab, then reopen Flight Tracker.</p>
+      </div>
+    `;
+    return;
+  }
+
+  trackerFlightPlan = flightPlan;
+
+  detailBody.innerHTML = `
+    <div class="tracker-sheet">
+      <div id="tracker-map" class="tracker-map"></div>
+      <div class="tracker-header">
+        <div class="tracker-route">${escapeAttr(flightPlan.originIcao)} <span class="tracker-route-arrow">&#9656;</span> ${escapeAttr(flightPlan.destIcao)}</div>
+        <div class="tracker-callsign">${escapeAttr(flightPlan.callsign)} &middot; ${escapeAttr(flightPlan.aircraftIcao)}</div>
+      </div>
+      <div class="tracker-status-pill" id="tracker-status-pill">
+        <span class="tracker-status-dot"></span><span id="tracker-status-text">No SimConnect</span>
+      </div>
+      <div class="tracker-hud">
+        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-gs">---</span><span class="tracker-hud-label">GS KT</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-alt">-----</span><span class="tracker-hud-label">ALT FT</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-hdg">---&deg;</span><span class="tracker-hud-label">HDG</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-vs">----</span><span class="tracker-hud-label">V/S FPM</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-dist">--- NM</span><span class="tracker-hud-label">DEST DIST</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-ete">--:--</span><span class="tracker-hud-label">ETE</span></div>
+      </div>
+      <button id="tracker-center-btn" class="tracker-center-btn active" title="Center on aircraft" aria-label="Center on aircraft">${ICONS.tracker}</button>
+    </div>
+  `;
+
+  document.getElementById("tracker-center-btn").addEventListener("click", () => {
+    trackerFollow = true;
+    document.getElementById("tracker-center-btn")?.classList.add("active");
+    if (trackerMap && trackerAircraftMarker) trackerMap.panTo(trackerAircraftMarker.getLatLng(), { animate: true });
+  });
+
+  initTrackerMap(flightPlan);
+
+  trackerInterval = setInterval(updateTrackerPosition, 2000);
+  updateTrackerPosition();
+}
+
+// Every lat/lon along the planned route in flying order - origin, each navlog fix, destination -
+// straight line segments between them (no great-circle interpolation), same as SimBrief/most
+// EFBs render their own route line at this scale since airway fixes are already dense enough
+// for the difference to be invisible on a moving map.
+function trackerRouteLatLngs(flightPlan) {
+  const pts = [];
+  if (flightPlan.originLat != null && flightPlan.originLon != null) pts.push([flightPlan.originLat, flightPlan.originLon]);
+  for (const fix of flightPlan.navlog || []) {
+    if (fix.lat != null && fix.lon != null) pts.push([fix.lat, fix.lon]);
+  }
+  if (flightPlan.destLat != null && flightPlan.destLon != null) pts.push([flightPlan.destLat, flightPlan.destLon]);
+  return pts;
+}
+
+function trackerAirportIcon() {
+  return L.divIcon({
+    className: "tracker-apt-icon",
+    html: '<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="6"/></svg>',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+}
+
+// A simple top-down aircraft silhouette (nose at the top of its own local frame) wrapped in a
+// rotor div so the marker's own DOM element can be rotated in place afterwards (see
+// trackerSetAircraftHeading) instead of rebuilding the icon every 2s poll, which used to cause a
+// visible flicker.
+function trackerAircraftIcon() {
+  return L.divIcon({
+    className: "tracker-aircraft-icon",
+    html: '<div class="tracker-aircraft-rotor"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 1.5 L14 9.5 L22.5 14.5 L22.5 16.5 L14 13.5 L14 19.5 L18 22.5 L18 24 L12 22.3 L6 24 L6 22.5 L10 19.5 L10 13.5 L1.5 16.5 L1.5 14.5 L10 9.5 Z"/></svg></div>',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+}
+
+function trackerSetAircraftHeading(headingDeg) {
+  const el = trackerAircraftMarker && trackerAircraftMarker.getElement();
+  const rotor = el && el.querySelector(".tracker-aircraft-rotor");
+  if (rotor) rotor.style.transform = `rotate(${headingDeg}deg)`;
+}
+
+function initTrackerMap(flightPlan) {
+  const mapEl = document.getElementById("tracker-map");
+  if (!mapEl || typeof L === "undefined") return;
+
+  trackerMap = L.map(mapEl, { zoomControl: true, attributionControl: true, worldCopyJump: true });
+
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    className: "tracker-tiles",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+  }).addTo(trackerMap);
+
+  const routePts = trackerRouteLatLngs(flightPlan);
+  if (routePts.length >= 2) {
+    L.polyline(routePts, { color: "#29d3ff", weight: 2.5, opacity: 0.85, dashArray: "1 8", lineCap: "round", interactive: false }).addTo(
+      trackerMap
+    );
+  }
+
+  if (flightPlan.originLat != null && flightPlan.originLon != null) {
+    L.marker([flightPlan.originLat, flightPlan.originLon], { icon: trackerAirportIcon(), interactive: false })
+      .bindTooltip(flightPlan.originIcao, { permanent: true, direction: "top", className: "tracker-apt-label", offset: [0, -8] })
+      .addTo(trackerMap);
+  }
+  if (flightPlan.destLat != null && flightPlan.destLon != null) {
+    L.marker([flightPlan.destLat, flightPlan.destLon], { icon: trackerAirportIcon(), interactive: false })
+      .bindTooltip(flightPlan.destIcao, { permanent: true, direction: "top", className: "tracker-apt-label", offset: [0, -8] })
+      .addTo(trackerMap);
+  }
+
+  for (const fix of flightPlan.navlog || []) {
+    if (fix.lat == null || fix.lon == null) continue;
+    L.circleMarker([fix.lat, fix.lon], {
+      radius: 3,
+      color: "#29d3ff",
+      weight: 1.5,
+      fillColor: "#0b3a4a",
+      fillOpacity: 0.9,
+      interactive: false,
+    })
+      .bindTooltip(fix.ident, { permanent: false, direction: "top", className: "tracker-wpt-label", offset: [0, -4] })
+      .addTo(trackerMap);
+  }
+
+  // The flown-track breadcrumb trail - empty until the first live position arrives.
+  trackerTrail = L.polyline([], { color: "#ffb347", weight: 2.5, opacity: 0.9, interactive: false }).addTo(trackerMap);
+
+  // The aircraft marker itself isn't added yet - it only appears once SimConnect actually gives
+  // a real position (see updateTrackerPosition), same as a real EFB shows no ownship symbol at
+  // all until it has a live position to plot.
+  trackerAircraftMarker = L.marker(routePts[0] || [0, 0], { icon: trackerAircraftIcon(), interactive: false, zIndexOffset: 1000 });
+
+  const bounds = L.latLngBounds(routePts.length ? routePts : [[0, 0]]);
+  trackerMap.fitBounds(bounds, { padding: [40, 40] });
+
+  // Panning manually breaks follow mode, same as every real moving-map EFB - the center button
+  // re-enables it (see renderFlightTracker's click handler on #tracker-center-btn).
+  trackerMap.on("dragstart", () => {
+    trackerFollow = false;
+    document.getElementById("tracker-center-btn")?.classList.remove("active");
+  });
+}
+
+// Great-circle distance in nautical miles - used for the HUD's destination-distance/ETE figures.
+function trackerHaversineNm(lat1, lon1, lat2, lon2) {
+  const R_NM = 3440.065;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R_NM * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+async function updateTrackerPosition() {
+  // The map is gone once the user has navigated to a different tab (detailBody.innerHTML was
+  // replaced under us) - self-cancel rather than touch a detached Leaflet instance, since
+  // nothing elsewhere in app.js calls back in to tear this loop down explicitly.
+  if (!document.getElementById("tracker-map") || !trackerMap) {
+    if (trackerInterval) {
+      clearInterval(trackerInterval);
+      trackerInterval = null;
+    }
+    return;
+  }
+
+  let connected = false;
+  let state = null;
+  try {
+    const res = await fetch("/api/flight/state", { cache: "no-store" });
+    if (res.ok) ({ connected, state } = await res.json());
+  } catch {
+    // Treated the same as "not connected" below.
+  }
+
+  const pill = document.getElementById("tracker-status-pill");
+  const pillText = document.getElementById("tracker-status-text");
+  if (pill && pillText) {
+    const live = !!(connected && state);
+    pill.classList.toggle("tracker-status-live", live);
+    pillText.textContent = live ? "Live" : "No SimConnect";
+  }
+  if (!connected || !state) return;
+
+  const { latitude, longitude, headingDegreesTrue, groundSpeedKts, altitudeFt, verticalSpeedFpm } = state;
+
+  const gsEl = document.getElementById("tk-gs");
+  const altEl = document.getElementById("tk-alt");
+  const hdgEl = document.getElementById("tk-hdg");
+  const vsEl = document.getElementById("tk-vs");
+  if (gsEl) gsEl.textContent = Math.round(groundSpeedKts);
+  if (altEl) altEl.textContent = Math.round(altitudeFt).toLocaleString();
+  if (hdgEl) hdgEl.textContent = `${String(Math.round(headingDegreesTrue) % 360).padStart(3, "0")}°`;
+  if (vsEl) vsEl.textContent = (verticalSpeedFpm >= 0 ? "+" : "") + Math.round(verticalSpeedFpm);
+
+  const distEl = document.getElementById("tk-dist");
+  const eteEl = document.getElementById("tk-ete");
+  if (trackerFlightPlan && trackerFlightPlan.destLat != null && trackerFlightPlan.destLon != null) {
+    const distNm = trackerHaversineNm(latitude, longitude, trackerFlightPlan.destLat, trackerFlightPlan.destLon);
+    if (distEl) distEl.textContent = `${Math.round(distNm)} NM`;
+    if (eteEl) {
+      if (groundSpeedKts > 20) {
+        const eteMin = (distNm / groundSpeedKts) * 60;
+        const h = Math.floor(eteMin / 60);
+        const m = Math.round(eteMin % 60);
+        eteEl.textContent = `${h}:${String(m).padStart(2, "0")}`;
+      } else {
+        eteEl.textContent = "--:--";
+      }
+    }
+  }
+
+  const latLng = [latitude, longitude];
+  if (!trackerHasFix) {
+    trackerHasFix = true;
+    trackerAircraftMarker.setLatLng(latLng);
+    trackerAircraftMarker.addTo(trackerMap);
+    trackerMap.setView(latLng, 9);
+  } else {
+    trackerAircraftMarker.setLatLng(latLng);
+  }
+  trackerSetAircraftHeading(headingDegreesTrue);
+
+  trackerTrailLatLngs.push(latLng);
+  if (trackerTrailLatLngs.length > 1000) trackerTrailLatLngs.shift();
+  trackerTrail.setLatLngs(trackerTrailLatLngs);
+
+  if (trackerFollow) trackerMap.panTo(latLng, { animate: true, duration: 0.5 });
 }
 
 // The Documents tab - lists any PDFs found in the "RealEFB Documents" folder (created under
@@ -3999,7 +4279,7 @@ function openWebAppEditor(existing) {
       if (!preset) return;
       overlay.querySelector("#webapp-editor-name").value = preset.name;
       overlay.querySelector("#webapp-editor-url").value = preset.url;
-      iconDataUrl = iconToDataUrl(ICONS[preset.icon]);
+      iconDataUrl = preset.logo;
       preview.innerHTML = `<img src="${escapeAttr(iconDataUrl)}" alt="" />`;
       removeBtn.disabled = false;
     });

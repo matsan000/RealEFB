@@ -17,9 +17,13 @@ internal sealed class SimBriefFlightPlan
     public string OriginIcao { get; set; } = "N/A";
     public string OriginIata { get; set; } = "N/A";
     public string OriginName { get; set; } = "N/A";
+    public double? OriginLat { get; set; }
+    public double? OriginLon { get; set; }
     public string DestIcao { get; set; } = "N/A";
     public string DestIata { get; set; } = "N/A";
     public string DestName { get; set; } = "N/A";
+    public double? DestLat { get; set; }
+    public double? DestLon { get; set; }
     public DateTimeOffset? ScheduledOutUtc { get; set; }
     public DateTimeOffset? ScheduledInUtc { get; set; }
     public DateTimeOffset? ScheduledOffUtc { get; set; }
@@ -158,9 +162,13 @@ internal sealed class SimBriefFlightPlan
             OriginIcao = GetProp(root, "origin", "icao_code"),
             OriginIata = GetProp(root, "origin", "iata_code"),
             OriginName = GetProp(root, "origin", "name"),
+            OriginLat = GetNumProp(root, "origin", "pos_lat"),
+            OriginLon = GetNumProp(root, "origin", "pos_long"),
             DestIcao = GetProp(root, "destination", "icao_code"),
             DestIata = GetProp(root, "destination", "iata_code"),
             DestName = GetProp(root, "destination", "name"),
+            DestLat = GetNumProp(root, "destination", "pos_lat"),
+            DestLon = GetNumProp(root, "destination", "pos_long"),
         };
 
         var atcCallsign = GetProp(root, "atc", "callsign");
@@ -278,7 +286,10 @@ internal sealed class SimBriefFlightPlan
                 GetFixDouble(fix, "fuel_leg"),
                 GetFixDouble(fix, "oat"),
                 GetFixDouble(fix, "wind_dir"),
-                GetFixDouble(fix, "wind_spd")));
+                GetFixDouble(fix, "wind_spd"),
+                GetFixDouble(fix, "pos_lat"),
+                GetFixDouble(fix, "pos_long"),
+                GetFixDouble(fix, "altitude_feet")));
         }
         return result;
     }
@@ -605,6 +616,8 @@ internal sealed record OperationalImpactPair(
 // One fix on the main route, for the Waypoints tab - see SimBriefFlightPlan.ParseNavlog. Oat
 // is outside air temperature in Celsius; WindDir/WindSpd are SimBrief's forecast wind at that
 // fix's cruise altitude, same figures used for the Alternate Routes table's "cruise" wind.
+// Lat/Lon/AltitudeFt are for the Flight Tracker map (see renderFlightTrackerTab in app.js) -
+// the planned route line and each fix's position/planned altitude.
 internal sealed record NavlogFixInfo(
     string Ident,
     string ViaAirway,
@@ -613,7 +626,10 @@ internal sealed record NavlogFixInfo(
     double? FuelLeg,
     double? Oat,
     double? WindDir,
-    double? WindSpd);
+    double? WindSpd,
+    double? Lat,
+    double? Lon,
+    double? AltitudeFt);
 
 // One airport's METAR/TAF on the Weather tab (a destination alternate or an ETOPS suitable
 // airport) - see SimBriefFlightPlan.ParseAirportWeatherList. IcaoIata is already formatted

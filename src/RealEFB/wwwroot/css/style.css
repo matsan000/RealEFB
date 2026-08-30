@@ -1332,7 +1332,11 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  /* Above every per-tab overlay, including Flight Tracker's HUD bar (z-index 500 - see
+     .tracker-hud in style.css) which otherwise sits right on top of it, both being fixed/
+     absolute elements pinned near the bottom-center of the screen - this is the one control
+     that must always stay reachable no matter what a tab draws over itself. */
+  z-index: 1000;
 }
 
 #home-button.hidden {
@@ -3561,4 +3565,249 @@ body[data-wallpaper="graphite"] #wallpaper::after {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ============================== Flight Tracker (live moving map) ============================== */
+/* Full-bleed like EFL's own .efl-sheet (see #detail-screen:has(.efl-sheet) above) - a moving map
+   needs the whole screen, with its own header/HUD overlaid on top of it rather than living in
+   the normal padded detail-screen flow. */
+#detail-screen:has(.tracker-sheet) {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* #detail-body has no height of its own elsewhere (every other tab just lets it grow with
+   content and the screen scroll) - .tracker-sheet's own height:100% has nothing to resolve
+   against without this, which collapsed the map to 0px tall. */
+#detail-screen:has(.tracker-sheet) #detail-body {
+  height: 100%;
+}
+
+.tracker-sheet {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background: #0c1a22;
+}
+
+.tracker-map {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  background: #0c1a22;
+}
+
+/* Slightly darkened/desaturated so OSM's default colorful street styling reads more like a
+   dim, glare-free cockpit moving map than a consumer web map. */
+.tracker-tiles {
+  filter: saturate(0.55) brightness(0.75) contrast(1.05);
+}
+
+.tracker-header {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 500;
+  background: rgba(12, 20, 28, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 8px 14px;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+
+.tracker-route {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.tracker-route-arrow {
+  color: #29d3ff;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.tracker-callsign {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 2px;
+}
+
+.tracker-status-pill {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(12, 20, 28, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(6px);
+}
+
+.tracker-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff5c5c;
+  box-shadow: 0 0 6px rgba(255, 92, 92, 0.8);
+}
+
+.tracker-status-pill.tracker-status-live .tracker-status-dot {
+  background: #35e07a;
+  box-shadow: 0 0 6px rgba(53, 224, 122, 0.9);
+}
+
+.tracker-status-pill.tracker-status-live #tracker-status-text {
+  color: #fff;
+}
+
+.tracker-hud {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  /* Clears the floating home button (60px circle, centered, sitting at bottom:16px - see
+     #home-button) instead of running underneath it. */
+  bottom: 88px;
+  z-index: 500;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  background: rgba(12, 20, 28, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 8px 6px;
+  backdrop-filter: blur(6px);
+}
+
+.tracker-hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.tracker-hud-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tracker-hud-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 1px;
+}
+
+.tracker-center-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 168px;
+  z-index: 500;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(12, 20, 28, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.tracker-center-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.tracker-center-btn:active {
+  transform: scale(0.94);
+}
+
+.tracker-center-btn.active {
+  color: #29d3ff;
+  border-color: rgba(41, 211, 255, 0.6);
+}
+
+.tracker-apt-icon svg circle {
+  fill: #0b3a4a;
+  stroke: #29d3ff;
+  stroke-width: 2px;
+}
+
+.tracker-apt-label,
+.tracker-wpt-label {
+  background: rgba(12, 20, 28, 0.85) !important;
+  border: 1px solid rgba(41, 211, 255, 0.4) !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 600;
+  padding: 1px 6px !important;
+  box-shadow: none !important;
+}
+
+.tracker-apt-label::before,
+.tracker-wpt-label::before {
+  border-top-color: rgba(41, 211, 255, 0.4) !important;
+}
+
+.tracker-aircraft-icon {
+  /* Leaflet's default icon has its own background/border - this marker draws its own SVG. */
+  background: transparent;
+  border: none;
+}
+
+.tracker-aircraft-rotor {
+  width: 100%;
+  height: 100%;
+  transition: transform 1.5s linear;
+}
+
+.tracker-aircraft-rotor svg path {
+  fill: #ffd23f;
+  stroke: #7a5200;
+  stroke-width: 0.6px;
+}
+
+/* Leaflet's default top-left zoom control sits directly under .tracker-header otherwise -
+   pushed down to clear it. */
+.tracker-sheet .leaflet-top.leaflet-left {
+  top: 66px;
+}
+
+/* Leaflet's own zoom control and attribution strip, restyled to sit on a dark moving map
+   instead of their default white-on-white web-map look. */
+.tracker-sheet .leaflet-control-zoom a {
+  background: rgba(12, 20, 28, 0.82);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.tracker-sheet .leaflet-control-zoom a:hover {
+  background: rgba(12, 20, 28, 0.95);
+}
+
+.tracker-sheet .leaflet-control-attribution {
+  background: rgba(12, 20, 28, 0.72);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tracker-sheet .leaflet-control-attribution a {
+  color: rgba(255, 255, 255, 0.8);
 }
