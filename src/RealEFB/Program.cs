@@ -131,6 +131,11 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
+        // Used to suppress the Final Loadsheet's notification pill (not the loadsheet itself -
+        // see GET /api/dispatch/loadsheet) when RealEFB was launched too long after a flight's
+        // scheduled off-block to make a "just arrived" notification meaningful.
+        var appStartUtc = DateTimeOffset.UtcNow;
+
         var settings = AppSettings.Load();
 
         // Holds the latest sim-second snapshot from SimConnect, if the sim is running and
@@ -709,6 +714,16 @@ internal static class Program
                 if (paxSplit is null)
                     paxSplit = GenerateRealisticPaxSplit((int)Math.Round(fp.PaxCountActual ?? 0));
 
+                // The Final Loadsheet's notification pill is meaningless once RealEFB was
+                // launched well after the fact - if you only opened the app 5+ minutes past
+                // off-block, "just received" doesn't apply, whether that's because the loadsheet
+                // fired while the app was closed or SimBrief import itself simply happened late.
+                // Suppresses only the notification (see checkLoadsheetNotifications in app.js) -
+                // the loadsheet itself is still generated and shown normally in Dispatch either
+                // way, exactly as before.
+                var finalNotificationSuppressed =
+                    fp.ScheduledOutUtc is { } schedForSuppress && appStartUtc > schedForSuppress.AddMinutes(5);
+
                 if (fp.ScheduledOutUtc is { } sched)
                 {
                     prelimLoadsheetTriggerUtc ??= sched.AddMinutes(-(20 + Random.Shared.NextDouble() * 5)); // 20.0 - 25.0
@@ -725,7 +740,14 @@ internal static class Program
                         finalLoadsheet = new LoadsheetInfo(now, adults, children, infants, totalPax, "pending", null, false, null);
                 }
 
-                return Results.Ok(new { ok = true, hasFlight = true, preliminary = preliminaryLoadsheet, final = finalLoadsheet });
+                return Results.Ok(new
+                {
+                    ok = true,
+                    hasFlight = true,
+                    preliminary = preliminaryLoadsheet,
+                    final = finalLoadsheet,
+                    finalNotificationSuppressed
+                });
             }
         });
 

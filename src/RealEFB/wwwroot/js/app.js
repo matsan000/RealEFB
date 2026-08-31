@@ -1596,10 +1596,13 @@ async function checkLoadsheetNotifications() {
   // The final loadsheet is strictly the more current document, so if both showed up between
   // polls (e.g. the app was closed for a while), only its notification is shown - the
   // preliminary one is marked seen too rather than separately notifying right after.
+  // finalNotificationSuppressed (see GET /api/dispatch/loadsheet) skips just the pill/chime
+  // when RealEFB was launched 5+ minutes past off-block - the loadsheet itself still shows up
+  // in Dispatch normally either way, this only silences a notification that'd be stale news.
   if (data.final && data.final.issuedUtc !== lastNotifiedFinalKey) {
     lastNotifiedFinalKey = data.final.issuedUtc;
     if (data.preliminary) lastNotifiedPrelimKey = data.preliminary.issuedUtc;
-    showLoadsheetNotification("Final Loadsheet Received");
+    if (!data.finalNotificationSuppressed) showLoadsheetNotification("Final Loadsheet Received");
     return;
   }
   if (data.preliminary && data.preliminary.issuedUtc !== lastNotifiedPrelimKey) {
