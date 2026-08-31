@@ -9,18 +9,10 @@ internal sealed class AppSettings
 
     // Each integration below has its own on/off flag, independent of whether credentials are
     // saved - so a user can flip one off without losing/retyping the key, and back on later.
-    // Nothing yet reads these to actually gate behavior (see VptEnabled's own note) - they
-    // exist now so Settings and the setup wizard have something real to switch.
+    // Nothing yet reads this to actually gate behavior - it exists now so Settings and the
+    // setup wizard have something real to switch.
     public bool SayIntentionsEnabled { get; set; } = false;
     public string SayIntentionsApiCode { get; set; } = "";
-
-    // Virtual Performance Tool (api.virtualperformancetool.com) - see VptClient. Unlike a
-    // simple API key, VPT's login needs all three of these together (developer key plus a VPT
-    // account's own email/password) to exchange for the JWT actual calculation calls use.
-    public bool VptEnabled { get; set; } = false;
-    public string VptDeveloperKey { get; set; } = "";
-    public string VptEmail { get; set; } = "";
-    public string VptPassword { get; set; } = "";
 
     // Which home-screen apps are switched on - see Settings > Apps, keyed by the app ids in
     // APPS in app.js. Deliberately a dictionary rather than a bool per app: an id that isn't

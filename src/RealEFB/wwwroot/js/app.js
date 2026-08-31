@@ -41,14 +41,14 @@ const SETTINGS_TILE = { id: "settings", label: "Settings", color: "#6b7280" };
 
 // Every Website App tile shares one flat, brand-neutral color (see ICONS.webapp) rather than
 // each getting its own - there's no per-site color to derive one from the way the old fixed
-// VPT/SimBrief tiles had (those used each product's own real color). An uploaded icon covers
+// SimBrief tile had (that used the product's own real color). An uploaded icon covers
 // the whole face anyway (see makeTileEl's tile-logo treatment), so this only actually shows
 // through behind the generic globe on one that hasn't had an icon added yet.
 const WEB_APP_TILE_COLOR = "#3d6d94";
 
 // A Settings > Website Apps entry (see AppSettings.WebApp), reshaped into the same {id, label,
 // color, kind, url, icon} tile shape makeTileEl/openDetail already know how to render/open -
-// same "browser" kind the old fixed VPT/SimBrief tiles used, so nothing about opening one is
+// same "browser" kind the old fixed SimBrief tile used, so nothing about opening one is
 // new. "webapp-" prefixed so its DOM id can never collide with a built-in app's.
 function webAppToTile(w) {
   const color = w.icon && WHITE_BG_WEBAPP_LOGOS.has(w.icon) ? WEB_APP_WHITE_TILE_COLOR : WEB_APP_TILE_COLOR;
@@ -346,7 +346,7 @@ function makeTileEl(tile) {
   const light = shadeColor(tile.color, 12);
   const dark = shadeColor(tile.color, -22);
   // A Website App with its own uploaded icon fills the whole face (tile-logo, same treatment
-  // the old fixed VPT/SimBrief tiles used); everything else - built-in apps, and a Website App
+  // the old fixed SimBrief tile used); everything else - built-in apps, and a Website App
   // with none - uses the small inset drawn icon from ICONS, id-matched for built-ins or the
   // generic globe fallback for a Website App (see ICONS.webapp/webAppToTile).
   const iconHtml = tile.icon
@@ -430,8 +430,8 @@ const wizardScreen = document.getElementById("wizard-screen");
 
 // Gates the whole app behind two things, checked in order: the one-time setup wizard (see
 // startWizard()), then loading a SimBrief flight plan (see showInitScreen()) - so every tile/
-// tab that depends on either (EFL, the VPT calculator's airport auto-fill, Weather, NOTAMS,
-// ...) has data to work with from the moment someone starts using RealEFB, rather than
+// tab that depends on either (EFL, Weather, NOTAMS, ...) has data to work with from the moment
+// someone starts using RealEFB, rather than
 // reaching a tile and discovering nothing's set up or loaded yet. The flight-plan check is
 // keyed off the server's own currentFlightPlan (null right after every RealEFB restart, since
 // that's in-memory only) - a tablet opening the app while the desktop already has a flight
@@ -541,7 +541,7 @@ async function initializeFlight() {
 }
 
 // Builds one toggle switch - shared by Settings and the setup wizard for the SayIntentions/
-// VPT/Dispatch on-off flags, each independent of whether credentials are actually saved
+// Dispatch on-off flags, each independent of whether credentials are actually saved
 // (see AppSettings.cs).
 function toggleSwitchHtml(id, checked, label) {
   return `
@@ -557,7 +557,7 @@ function toggleSwitchHtml(id, checked, label) {
 const EYE_ICON_SVG = '<svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
 
 // Builds one password-style field with a show/hide eye button - shared by every secret-looking
-// field in Settings and the setup wizard (SayIntentions code, VPT dev key/password). These all
+// field in Settings and the setup wizard (currently just the SayIntentions code). These all
 // round-trip their real saved value now (see GET /api/settings),
 // so the field shows the actual saved dots rather than a blank "leave this empty to keep it"
 // placeholder - the eye button is what lets that value actually be read back when needed.
@@ -588,7 +588,7 @@ function wirePasswordEyeToggles(root) {
 // saving as it goes via the same endpoints Settings itself uses so closing RealEFB partway
 // through doesn't lose whatever was already answered. Shown automatically the first time ever
 // (see startApp()), and re-runnable on purpose from its own button in Settings.
-const WIZARD_STEPS = ["simbrief", "webserver", "sayintentions", "vpt", "done"];
+const WIZARD_STEPS = ["simbrief", "webserver", "sayintentions", "done"];
 let wizardIndex = 0;
 let wizardState = {};
 
@@ -598,10 +598,6 @@ async function startWizard() {
     port: 5150,
     sayIntentionsEnabled: false,
     sayIntentionsApiCode: "",
-    vptEnabled: false,
-    vptDeveloperKey: "",
-    vptEmail: "",
-    vptPassword: "",
   };
   try {
     const res = await fetch("/api/settings", { cache: "no-store" });
@@ -611,10 +607,6 @@ async function startWizard() {
       wizardState.port = s.port || 5150;
       wizardState.sayIntentionsEnabled = !!s.sayIntentionsEnabled;
       wizardState.sayIntentionsApiCode = s.sayIntentionsApiCode || "";
-      wizardState.vptEnabled = !!s.vptEnabled;
-      wizardState.vptDeveloperKey = s.vptDeveloperKey || "";
-      wizardState.vptEmail = s.vptEmail || "";
-      wizardState.vptPassword = s.vptPassword || "";
     }
   } catch {
     // Wizard still opens with blank defaults - nothing fatal about a failed prefill.
@@ -672,20 +664,6 @@ function renderWizardStep() {
     document.getElementById("wizard-sayintentions-enabled").addEventListener("change", (e) => {
       document.getElementById("wizard-sayintentions-field").classList.toggle("wizard-field-hidden", !e.target.checked);
     });
-  } else if (stepId === "vpt") {
-    body.innerHTML = `
-      <h1 class="init-title">Virtual Performance Tool</h1>
-      <p class="init-subtitle">Optional. Turn this on if you have VPT access for the Takeoff Performance calculator.</p>
-      ${toggleSwitchHtml("wizard-vpt-enabled", wizardState.vptEnabled, "Enable Virtual Performance Tool")}
-      <div id="wizard-vpt-fields" class="wizard-field-spaced ${wizardState.vptEnabled ? "" : "wizard-field-hidden"}">
-        ${passwordFieldHtml("wizard-vpt-devkey", wizardState.vptDeveloperKey, "Developer key")}
-        <input id="wizard-vpt-email" type="text" class="wizard-field-spaced" placeholder="Account email" value="${escapeAttr(wizardState.vptEmail)}" />
-        <div class="wizard-field-spaced">${passwordFieldHtml("wizard-vpt-password", wizardState.vptPassword, "Account password")}</div>
-      </div>
-    `;
-    document.getElementById("wizard-vpt-enabled").addEventListener("change", (e) => {
-      document.getElementById("wizard-vpt-fields").classList.toggle("wizard-field-hidden", !e.target.checked);
-    });
   } else if (stepId === "done") {
     body.innerHTML = `
       <h1 class="init-title">All set</h1>
@@ -733,16 +711,6 @@ async function wizardNext() {
       wizardState.sayIntentionsEnabled = enabled;
       wizardState.sayIntentionsApiCode = code;
       await postJson("/api/settings/sayintentions", { enabled, sayIntentionsApiCode: code });
-    } else if (stepId === "vpt") {
-      const enabled = document.getElementById("wizard-vpt-enabled").checked;
-      const devKey = document.getElementById("wizard-vpt-devkey").value.trim();
-      const email = document.getElementById("wizard-vpt-email").value.trim();
-      const password = document.getElementById("wizard-vpt-password").value;
-      wizardState.vptEnabled = enabled;
-      wizardState.vptDeveloperKey = devKey;
-      wizardState.vptEmail = email;
-      wizardState.vptPassword = password;
-      await postJson("/api/settings/vpt", { enabled, vptDeveloperKey: devKey, vptEmail: email, vptPassword: password });
     } else if (stepId === "done") {
       await postJson("/api/settings/wizard-complete", {});
       wizardScreen.classList.add("hidden");
@@ -3945,10 +3913,6 @@ async function renderSettings() {
   let simBriefId = "";
   let sayIntentionsEnabled = false;
   let sayIntentionsApiCode = "";
-  let vptEnabled = false;
-  let vptDeveloperKey = "";
-  let vptEmail = "";
-  let vptPassword = "";
   let dispatchDataSource = "sayintentions";
   let interfaces = [];
   try {
@@ -3963,10 +3927,6 @@ async function renderSettings() {
         simBriefId,
         sayIntentionsEnabled,
         sayIntentionsApiCode,
-        vptEnabled,
-        vptDeveloperKey,
-        vptEmail,
-        vptPassword,
         dispatchDataSource,
       } = s);
       enabledApps = s.enabledApps || {};
@@ -4057,20 +4017,6 @@ async function renderSettings() {
     <p id="settings-sayintentions-status" class="settings-hint"></p>
   `;
 
-  const vptBody = `
-    ${toggleSwitchHtml("settings-vpt-enabled", vptEnabled, "Enable Virtual Performance Tool integration")}
-    <label class="settings-label settings-label-spaced" for="settings-vpt-devkey">Virtual Performance Tool developer key</label>
-    ${passwordFieldHtml("settings-vpt-devkey", vptDeveloperKey, "Paste your VPT developer key")}
-    <label class="settings-label settings-label-spaced" for="settings-vpt-email">VPT account email</label>
-    <input id="settings-vpt-email" type="text" placeholder="you@example.com" value="${escapeAttr(vptEmail)}" />
-    <label class="settings-label settings-label-spaced" for="settings-vpt-password">VPT account password</label>
-    ${passwordFieldHtml("settings-vpt-password", vptPassword, "Enter your VPT account password")}
-    <div class="settings-row settings-row-spaced">
-      <button id="settings-vpt-save" class="settings-save-btn">Save</button>
-    </div>
-    <p id="settings-vpt-status" class="settings-hint">Used by the Takeoff Performance calculator to sign in to Virtual Performance Tool.</p>
-  `;
-
   detailBody.innerHTML = `
     <button id="settings-run-wizard" class="settings-wizard-btn">Run Setup Wizard</button>
     ${settingsSectionHtml("apps", "Apps", appsBody)}
@@ -4080,7 +4026,6 @@ async function renderSettings() {
     ${settingsSectionHtml("simbrief", "SimBrief", simBriefBody)}
     ${settingsSectionHtml("dispatch", "Dispatch", dispatchBody)}
     ${settingsSectionHtml("sayintentions", "SayIntentions.AI", sayIntentionsBody)}
-    ${settingsSectionHtml("vpt", "Virtual Performance Tool", vptBody)}
   `;
 
   document.getElementById("settings-run-wizard").addEventListener("click", startWizard);
@@ -4099,7 +4044,6 @@ async function renderSettings() {
   document.getElementById("settings-simbrief-save").addEventListener("click", saveSimBrief);
   document.getElementById("settings-dispatch-save").addEventListener("click", saveDispatch);
   document.getElementById("settings-sayintentions-save").addEventListener("click", saveSayIntentions);
-  document.getElementById("settings-vpt-save").addEventListener("click", saveVpt);
   wirePasswordEyeToggles(detailBody);
 
   for (const btn of detailBody.querySelectorAll(".settings-segmented-btn")) {
@@ -4453,461 +4397,6 @@ async function saveSayIntentions() {
   }
 }
 
-async function saveVpt() {
-  const status = document.getElementById("settings-vpt-status");
-  status.classList.remove("settings-error");
-  status.textContent = "Saving...";
-  try {
-    const res = await fetch("/api/settings/vpt", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        enabled: document.getElementById("settings-vpt-enabled").checked,
-        vptDeveloperKey: document.getElementById("settings-vpt-devkey").value,
-        vptEmail: document.getElementById("settings-vpt-email").value,
-        // Blank means "leave the saved password alone" - see /api/settings/vpt.
-        vptPassword: document.getElementById("settings-vpt-password").value,
-      }),
-    });
-    status.textContent = res.ok ? "Saved." : "Could not save - try again.";
-    if (!res.ok) status.classList.add("settings-error");
-  } catch {
-    status.textContent = "Could not save - try again.";
-    status.classList.add("settings-error");
-  }
-}
-
-// ---------------------------------------------------------------------------------------
-// CURRENTLY UNUSED. The VPT Performance Calculator app now just opens VPT's own web
-// calculator (see APPS), so nothing calls renderVptTakeoff any more. Everything from here to
-// renderEfl below - along with the /api/vpt/* endpoints in Program.cs and the Virtual
-// Performance Tool section in Settings - is kept intact rather than deleted because the switch
-// to the website was explicitly a "for now" move, and VPT's own API had an unrelated blocker
-// (its /api endpoint 301-redirects POSTs, corrupting the login body) that may yet get fixed.
-// Delete this block if the native calculator isn't coming back.
-// ---------------------------------------------------------------------------------------
-// The TKO Dispatch takeoff performance calculator, backed by the Virtual Performance Tool API.
-// Per VPT's own documented Aircraft API, aircraft data is loaded in two stages: press
-// "Authenticate VPT" to log in and fetch the account's whole aircraft catalog (POST
-// /api/vpt/authenticate), then pick one aircraft from the resulting list to load that profile's
-// full data - weight limits, calculation limits, and the FLAP/RTG/COND/A-I option lists (POST
-// /api/vpt/aircraft) - which rebuilds those dropdowns and the limits panel to match exactly
-// what that aircraft allows. Only once an aircraft is loaded does Calculate (POST
-// /api/vpt/takeoff) become available. The airport field is pre-filled from the loaded SimBrief
-// flight plan's origin ONLY if one happens to already be loaded, and stays fully editable - the
-// calculator never requires a flight plan to be loaded to be used.
-let vptAircraftCatalog = []; // flat list of {file, userRegistration, virtualAirline, label} after a successful Authenticate
-let vptSelectedAircraft = null; // the "aircraft" object from /api/vpt/aircraft's response, once one is picked
-
-async function renderVptTakeoff() {
-  detailBody.innerHTML = `<p class="coming-soon">Loading...</p>`;
-  vptAircraftCatalog = [];
-  vptSelectedAircraft = null;
-
-  let originIcao = "";
-  try {
-    const res = await fetch("/api/simbrief/flightplan", { cache: "no-store" });
-    if (res.ok) {
-      const { flightPlan } = await res.json();
-      if (flightPlan && flightPlan.originIcao && flightPlan.originIcao !== "N/A") {
-        originIcao = flightPlan.originIcao;
-      }
-    }
-  } catch {
-    // No flight plan loaded (or server hiccup) - ARPT just starts blank, which is fine.
-  }
-
-  detailBody.innerHTML = `
-    <button id="vpt-auth-button" class="vpt-auth-btn">Authenticate VPT</button>
-    <div class="vpt-form">
-      <p class="settings-hint">TKO Dispatch - powered by Virtual Performance Tool. Requires a VPT developer key, email, and password saved in Settings.</p>
-      <p id="vpt-auth-status" class="settings-hint">Not authenticated yet - press "Authenticate VPT" to load your aircraft.</p>
-
-      <label class="vpt-field vpt-field-wide">Aircraft
-        <select id="vpt-aircraft" disabled>
-          <option value="">Authenticate first to load your aircraft list</option>
-        </select>
-      </label>
-      <p id="vpt-aircraft-status" class="settings-hint"></p>
-      <div id="vpt-aircraft-limits"></div>
-
-      <div class="vpt-grid vpt-grid-spaced">
-        <label class="vpt-field">ARPT<input id="vpt-airport" type="text" maxlength="4" placeholder="e.g. EHAM" value="${escapeAttr(originIcao)}" /></label>
-        <label class="vpt-field">RWY<input id="vpt-runway" type="text" maxlength="6" placeholder="e.g. 18R" /></label>
-        <label class="vpt-field">COND<select id="vpt-cond" disabled><option value="">-</option></select></label>
-        <label class="vpt-field vpt-field-hidden" id="vpt-depth-field">DEPTH (mm)<input id="vpt-depth" type="number" min="0" placeholder="e.g. 5" /></label>
-        <label class="vpt-field">WIND DIR<input id="vpt-wind-dir" type="number" min="0" max="360" placeholder="e.g. 270" /></label>
-        <label class="vpt-field">WIND SPD (kt)<input id="vpt-wind-spd" type="number" placeholder="e.g. 10" /></label>
-        <label class="vpt-field">OAT (°C)<input id="vpt-oat" type="number" placeholder="15" /></label>
-        <label class="vpt-field">QNH (hPa)<input id="vpt-qnh" type="number" placeholder="1013" /></label>
-        <label class="vpt-field">RTG<select id="vpt-rtg" disabled><option value="OPTIMUM">Optimum</option></select></label>
-        <label class="vpt-field">FLAP<select id="vpt-flap" disabled><option value="OPTIMUM">Optimum</option></select></label>
-        <label class="vpt-field">A/I (anti-ice)<select id="vpt-ai" disabled><option value="">-</option></select></label>
-        <label class="vpt-field">A/C (bleed)<select id="vpt-acbleed" disabled><option value="">-</option></select></label>
-        <label class="vpt-field">IC (improved climb)<select id="vpt-ic" disabled><option value="">-</option></select></label>
-        <label class="vpt-field">Takeoff Weight (kg)<input id="vpt-tow" type="number" placeholder="Leave blank for max (RTOW)" /></label>
-        <label class="vpt-field">CG (% MAC)<input id="vpt-cg" type="number" step="0.1" placeholder="optional" /></label>
-      </div>
-      <div class="settings-row settings-row-spaced">
-        <button id="vpt-calculate" disabled>Calculate</button>
-      </div>
-      <p id="vpt-status" class="settings-hint"></p>
-      <div id="vpt-results"></div>
-    </div>
-  `;
-
-  document.getElementById("vpt-auth-button").addEventListener("click", authenticateVpt);
-  document.getElementById("vpt-aircraft").addEventListener("change", onVptAircraftSelected);
-  document.getElementById("vpt-cond").addEventListener("change", updateVptDepthVisibility);
-  document.getElementById("vpt-calculate").addEventListener("click", calculateVptTakeoff);
-}
-
-// Contamination depth only applies to runway conditions whose own formData entry sets
-// requiresDepth (slush/snow/water and the like) - for DRY/WET it isn't just optional, it's
-// meaningless, so the field stays hidden rather than inviting a value that would be ignored.
-function updateVptDepthVisibility() {
-  const condSelect = document.getElementById("vpt-cond");
-  const depthField = document.getElementById("vpt-depth-field");
-  const options = vptSelectedAircraft?.formData?.takeoff?.condition || [];
-  const selected = options.find((o) => o.value === condSelect.value);
-  const needsDepth = !!selected && Number(selected.requiresDepth) === 1;
-  depthField.classList.toggle("vpt-field-hidden", !needsDepth);
-  if (!needsDepth) document.getElementById("vpt-depth").value = "";
-}
-
-async function authenticateVpt() {
-  const authStatus = document.getElementById("vpt-auth-status");
-  const aircraftSelect = document.getElementById("vpt-aircraft");
-  authStatus.classList.remove("settings-error");
-  authStatus.textContent = "Authenticating...";
-
-  try {
-    const res = await fetch("/api/vpt/authenticate", { method: "POST" });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      authStatus.textContent = body.error || body.detail || "VPT authentication failed - check the developer key/email/password in Settings.";
-      authStatus.classList.add("settings-error");
-      return;
-    }
-
-    const result = body.result || {};
-    const groups = [
-      ["Available Aircraft", result.availableAircraft || []],
-      ["Your Fleet", result.userFleet || []],
-      ["Virtual Airline Fleet", result.virtualAirlineFleet || []],
-    ];
-
-    vptAircraftCatalog = [];
-    let optionsHtml = `<option value="">Select an aircraft...</option>`;
-    for (const [groupLabel, entries] of groups) {
-      if (!entries.length) continue;
-      optionsHtml += `<optgroup label="${escapeAttr(groupLabel)}">`;
-      for (const entry of entries) {
-        const idx = vptAircraftCatalog.length;
-        vptAircraftCatalog.push({
-          file: entry.profile.file,
-          userRegistration: entry.profile.userRegistration,
-          virtualAirline: entry.profile.virtualAirline,
-        });
-        const label = `${entry.profile.title}${entry.profile.description ? " " + entry.profile.description : ""} (${entry.model?.engines || ""})`;
-        optionsHtml += `<option value="${idx}">${escapeAttr(label)}</option>`;
-      }
-      optionsHtml += `</optgroup>`;
-    }
-
-    aircraftSelect.innerHTML = optionsHtml;
-    aircraftSelect.disabled = vptAircraftCatalog.length === 0;
-    authStatus.textContent = vptAircraftCatalog.length
-      ? `Authenticated. ${vptAircraftCatalog.length} aircraft available - pick one below.`
-      : "Authenticated, but no aircraft are available on this account.";
-  } catch {
-    authStatus.textContent = "Could not reach the server - try again.";
-    authStatus.classList.add("settings-error");
-  }
-}
-
-async function onVptAircraftSelected() {
-  const select = document.getElementById("vpt-aircraft");
-  const aircraftStatus = document.getElementById("vpt-aircraft-status");
-  const limitsEl = document.getElementById("vpt-aircraft-limits");
-  const calcButton = document.getElementById("vpt-calculate");
-  aircraftStatus.classList.remove("settings-error");
-
-  const entry = vptAircraftCatalog[select.value];
-  if (!entry) {
-    vptSelectedAircraft = null;
-    calcButton.disabled = true;
-    limitsEl.innerHTML = "";
-    aircraftStatus.textContent = "";
-    return;
-  }
-
-  aircraftStatus.textContent = "Loading aircraft data...";
-  calcButton.disabled = true;
-  try {
-    const res = await fetch("/api/vpt/aircraft", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        file: entry.file,
-        userRegistration: entry.userRegistration,
-        virtualAirline: entry.virtualAirline,
-      }),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      aircraftStatus.textContent = body.error || body.detail || "Could not load that aircraft's data.";
-      aircraftStatus.classList.add("settings-error");
-      return;
-    }
-
-    vptSelectedAircraft = body.result?.aircraft || null;
-    if (!vptSelectedAircraft) {
-      aircraftStatus.textContent = "VPT returned no aircraft data.";
-      aircraftStatus.classList.add("settings-error");
-      return;
-    }
-
-    const takeoffForm = vptSelectedAircraft.formData?.takeoff || {};
-    populateVptOptionSelect("vpt-cond", takeoffForm.condition);
-    populateVptOptionSelect("vpt-rtg", takeoffForm.rating);
-    populateVptOptionSelect("vpt-flap", takeoffForm.flap);
-    populateVptOptionSelect("vpt-ai", takeoffForm.ai);
-    populateVptOptionSelect("vpt-acbleed", takeoffForm.acBleed);
-    populateVptOptionSelect("vpt-ic", takeoffForm.improved);
-    updateVptDepthVisibility();
-
-    const w = vptSelectedAircraft.weight || {};
-    const cl = vptSelectedAircraft.calculationLimit || {};
-    const towInput = document.getElementById("vpt-tow");
-    if (w.mstow) towInput.max = w.mstow;
-
-    // Not every profile supports a CG input at all - when it doesn't, the field is disabled
-    // rather than left accepting a value the calculation would ignore.
-    const cgInput = document.getElementById("vpt-cg");
-    const cgAvailable = vptSelectedAircraft.takeoff?.isCGAvailable !== false;
-    cgInput.disabled = !cgAvailable;
-    if (!cgAvailable) cgInput.value = "";
-    cgInput.placeholder = cgAvailable ? "optional" : "not available for this aircraft";
-
-    limitsEl.innerHTML = `
-      <div class="vpt-results-card">
-        <div class="vpt-result-row"><span>OEW</span><span>${w.oew ?? "-"} kg</span></div>
-        <div class="vpt-result-row"><span>Max Takeoff Weight (MSTOW)</span><span>${w.mstow ?? "-"} kg</span></div>
-        <div class="vpt-result-row"><span>Max Zero Fuel Weight (MZFW)</span><span>${w.mzfw ?? "-"} kg</span></div>
-        <div class="vpt-result-row"><span>Max Structural Ramp Weight (MSRW)</span><span>${w.msrw ?? "-"} kg</span></div>
-        <div class="vpt-result-row"><span>OAT range</span><span>${cl.minTemperatureC ?? "-"} to ${cl.maxTemperatureC ?? "-"} °C</span></div>
-        <div class="vpt-result-row"><span>QNH range</span><span>${cl.minQNHhPa ?? "-"} to ${cl.maxQNHhPa ?? "-"} hPa</span></div>
-      </div>
-    `;
-
-    aircraftStatus.textContent = `Loaded ${vptSelectedAircraft.profile?.title || entry.file}.`;
-    calcButton.disabled = false;
-  } catch {
-    aircraftStatus.textContent = "Could not reach the server - try again.";
-    aircraftStatus.classList.add("settings-error");
-  }
-}
-
-// Rebuilds a <select>'s options from one of the selected aircraft's formData option arrays
-// (condition/rating/flap/ai) - each option's real API "value" (not its display "description")
-// becomes the <option>'s value, per VPT's documented requirement that configuration fields
-// must use formData's value field. Falls back to leaving the select on its single hardcoded
-// default option if this aircraft profile didn't provide that category.
-function populateVptOptionSelect(selectId, options) {
-  const select = document.getElementById(selectId);
-  if (!options || !options.length) {
-    select.disabled = true;
-    return;
-  }
-  const sorted = [...options].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  select.innerHTML = sorted
-    .map((o) => `<option value="${escapeAttr(o.value)}" ${o.isDefault ? "selected" : ""}>${escapeAttr(o.description)}</option>`)
-    .join("");
-  select.disabled = false;
-}
-
-async function calculateVptTakeoff() {
-  const status = document.getElementById("vpt-status");
-  const results = document.getElementById("vpt-results");
-  results.innerHTML = "";
-  status.classList.remove("settings-error");
-
-  if (!vptSelectedAircraft) {
-    status.textContent = "Authenticate and pick an aircraft first.";
-    status.classList.add("settings-error");
-    return;
-  }
-
-  const airport = document.getElementById("vpt-airport").value.trim();
-  const runway = document.getElementById("vpt-runway").value.trim();
-
-  if (!airport || !runway) {
-    status.textContent = "ARPT and RWY are required.";
-    status.classList.add("settings-error");
-    return;
-  }
-
-  const numOrNull = (id) => {
-    const v = document.getElementById(id).value;
-    return v === "" ? null : Number(v);
-  };
-
-  // VPT rejects out-of-range inputs server-side, and the aircraft profile already told us the
-  // exact accepted ranges - so catch them here with a message naming the real limit rather than
-  // spending a calculation (they're metered) on a request that can only come back an error.
-  const oat = numOrNull("vpt-oat");
-  const qnh = numOrNull("vpt-qnh");
-  const tow = numOrNull("vpt-tow");
-  const limits = vptSelectedAircraft.calculationLimit || {};
-  const weightLimits = vptSelectedAircraft.weight || {};
-  const fail = (msg) => {
-    status.textContent = msg;
-    status.classList.add("settings-error");
-  };
-
-  if (oat !== null && limits.minTemperatureC != null && limits.maxTemperatureC != null &&
-      (oat < limits.minTemperatureC || oat > limits.maxTemperatureC)) {
-    return fail(`OAT must be between ${limits.minTemperatureC} and ${limits.maxTemperatureC} °C for this aircraft.`);
-  }
-  if (qnh !== null && limits.minQNHhPa != null && limits.maxQNHhPa != null &&
-      (qnh < limits.minQNHhPa || qnh > limits.maxQNHhPa)) {
-    return fail(`QNH must be between ${limits.minQNHhPa} and ${limits.maxQNHhPa} hPa for this aircraft.`);
-  }
-  if (tow !== null && weightLimits.mstow != null && tow > weightLimits.mstow) {
-    return fail(`Takeoff weight exceeds this aircraft's maximum structural takeoff weight (${weightLimits.mstow} kg).`);
-  }
-
-  const profile = vptSelectedAircraft.profile || {};
-
-  status.textContent = "Calculating...";
-  try {
-    const res = await fetch("/api/vpt/takeoff", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        aircraftFile: profile.file,
-        userRegistration: profile.userRegistration,
-        virtualAirline: profile.virtualAirline,
-        airport,
-        runway,
-        windDirection: numOrNull("vpt-wind-dir"),
-        windSpeed: numOrNull("vpt-wind-spd"),
-        temperatureC: oat,
-        qnhHpa: qnh,
-        runwayCondition: document.getElementById("vpt-cond").value,
-        runwayConditionDepth: numOrNull("vpt-depth"),
-        flap: document.getElementById("vpt-flap").value,
-        rating: document.getElementById("vpt-rtg").value,
-        antiIce: document.getElementById("vpt-ai").value,
-        acBleed: document.getElementById("vpt-acbleed").value,
-        improvedClimb: document.getElementById("vpt-ic").value,
-        takeoffWeight: tow,
-        cg: numOrNull("vpt-cg"),
-      }),
-    });
-
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      status.textContent = body.error || body.detail || "VPT calculation failed.";
-      status.classList.add("settings-error");
-      return;
-    }
-
-    status.textContent = "";
-    const performance = body.result?.performance;
-    const perf = performance?.full;
-    if (!perf) {
-      results.innerHTML = `<p class="settings-hint">VPT returned a response with no performance data.</p>`;
-      return;
-    }
-
-    const extras = (performance.additionalAssumed || [])
-      .map((a) => renderVptPerfBlock(`Requested FLEX ${a.requested ?? ""} °C`, a))
-      .join("");
-
-    results.innerHTML =
-      renderVptPerfBlock("Full thrust", perf) +
-      renderVptPerfBlock("Assumed / FLEX thrust", performance.assumed) +
-      extras +
-      (perf.efp
-        ? `<div class="vpt-results-card"><div class="vpt-result-head">Engine Failure Procedure</div><p>${escapeAttr(perf.efp)}</p></div>`
-        : "");
-  } catch {
-    status.textContent = "Could not reach the server - try again.";
-    status.classList.add("settings-error");
-  }
-}
-
-// Renders one VPT performance result - used for the full-thrust block, the assumed/FLEX block,
-// and each additionalAssumed entry, since VPT documents all three as carrying the same field
-// set. Units come from the result itself (perf.units) rather than being assumed, so this stays
-// correct if the request ever switches to lb/metres.
-function renderVptPerfBlock(title, perf) {
-  if (!perf) return "";
-
-  // An assumed/FLEX block that couldn't be computed carries only status fields; an
-  // additionalAssumed entry that failed carries available:false plus an errorMessage.
-  if (perf.available === false || (perf.maxTow === undefined && perf.v1 === undefined)) {
-    const why = perf.errorMessage || perf.assumedMessage || "Not available for these conditions.";
-    return `
-      <div class="vpt-results-card">
-        <div class="vpt-result-head">${escapeAttr(title)}</div>
-        <p>${escapeAttr(why)}</p>
-      </div>`;
-  }
-
-  const u = perf.units || {};
-  const wt = u.weight || "kg";
-  const dist = u.distance || "ft";
-  const row = (label, value, unit) =>
-    value === undefined || value === null || value === ""
-      ? ""
-      : `<div class="vpt-result-row"><span>${escapeAttr(label)}</span><span>${escapeAttr(value)}${unit ? " " + escapeAttr(unit) : ""}</span></div>`;
-
-  // V-speeds only come back when a takeoff weight was supplied (VPT's "actual TOW" mode) -
-  // in RTOW mode the fields are absent/zero and displayVspeeds is false, so showing a row of
-  // zeros as if they were real speeds would be actively misleading.
-  const speeds =
-    perf.displayVspeeds === false
-      ? `<div class="vpt-result-note">RTOW mode - enter a takeoff weight to get V-speeds and thrust setting.</div>`
-      : row("V1", perf.v1, "kt") +
-        row("VR", perf.vr, "kt") +
-        row("V2", perf.v2, "kt") +
-        row("Green dot", perf.greenDot, "kt") +
-        (perf.vrefIsDisplayed ? row(`Vref (flap ${perf.vrefFlaps ?? "-"})`, perf.vrefSpeed, "kt") : "");
-
-  // A negative margin means the takeoff does not fit on the runway - too important to render
-  // as just another neutral row.
-  const marginRow =
-    perf.margin === undefined || perf.margin === null
-      ? ""
-      : `<div class="vpt-result-row ${perf.margin < 0 ? "vpt-result-bad" : ""}">
-           <span>Margin</span><span>${escapeAttr(perf.margin)} ${escapeAttr(dist)}${perf.margin < 0 ? " - DOES NOT FIT" : ""}</span>
-         </div>`;
-
-  return `
-    <div class="vpt-results-card">
-      <div class="vpt-result-head">${escapeAttr(title)}</div>
-      ${row("Thrust rating", perf.rating)}
-      ${row("Flap", perf.flap)}
-      ${row(perf.lblTemp || "Temperature", perf.temperature, "°C")}
-      ${row("Thrust setting", perf.lblThrust)}
-      ${row(perf.n1Label || "N1", perf.n1)}
-      ${speeds}
-      ${row("Takeoff weight", perf.tow, wt)}
-      ${row("Max takeoff weight", perf.maxTow, wt)}
-      ${row("Limiting factor", perf.limitingFactor)}
-      ${row("TORA", perf.tora, dist)}
-      ${marginRow}
-      ${row("ASD (one engine)", perf.accelerateStopDistanceOneEngine, dist)}
-      ${row("TOD (all engines)", perf.takeOffDistanceAllEngines, dist)}
-      ${row("TOD (one engine)", perf.takeOffDistanceOneEngine, dist)}
-      ${row("2nd segment (net)", perf.secondSegmentNet, "%")}
-      ${row("Trim", perf.trimRounded)}
-    </div>`;
-}
-
 function goHome() {
   detailScreen.classList.add("hidden");
   homeButton.classList.add("hidden");
@@ -4918,28 +4407,37 @@ function goHome() {
 const statusbarLeft = document.querySelector(".statusbar-left");
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// The status bar only ever shows the sim's own local time/date, never the PC's real clock -
-// real-world time is meaningless for the flight, and the sim's time-of-day can be set to
-// anything. So there's simply nothing to show here until SimConnect is actually connected.
+// Always Zulu, never local sim time or the PC's own timezone-adjusted clock - the one time
+// standard that means the same thing regardless of which sim/aircraft/timezone is involved,
+// which is why real EFBs show it too. The status bar always shows one: the sim's own Zulu
+// clock while SimConnect is connected (see ZuluSeconds/ZuluYear/ZuluMonth/ZuluDay in
+// SimConnectClient.cs - paired together so the date always matches the time it's shown next
+// to), or this device's real-world UTC clock the rest of the time (before the sim's running,
+// or between flights) - never hidden outright the way it used to be.
 async function checkFlightState() {
+  statusbarLeft.classList.remove("hidden");
+
+  let connected = false;
+  let state = null;
   try {
     const res = await fetch("/api/flight/state", { cache: "no-store" });
-    if (res.ok) {
-      const { connected, state } = await res.json();
-      if (connected && state) {
-        statusbarLeft.classList.remove("hidden");
-        const totalSeconds = Math.floor(state.localTimeSeconds);
-        const hh = String(Math.floor(totalSeconds / 3600) % 24).padStart(2, "0");
-        const mm = String(Math.floor(totalSeconds / 60) % 60).padStart(2, "0");
-        clockEl.textContent = `${hh}:${mm}`;
-        dateEl.textContent = `${state.localDay} ${MONTH_NAMES[state.localMonth - 1] ?? ""} ${state.localYear}`;
-        return;
-      }
-    }
+    if (res.ok) ({ connected, state } = await res.json());
   } catch {
-    // fall through - hide below, same as "not connected"
+    // Falls through to the real-world clock below, same as "not connected".
   }
-  statusbarLeft.classList.add("hidden");
+
+  if (connected && state) {
+    const totalSeconds = Math.floor(state.zuluSeconds);
+    const hh = String(Math.floor(totalSeconds / 3600) % 24).padStart(2, "0");
+    const mm = String(Math.floor(totalSeconds / 60) % 60).padStart(2, "0");
+    clockEl.textContent = `${hh}:${mm}Z`;
+    dateEl.textContent = `${state.zuluDay} ${MONTH_NAMES[state.zuluMonth - 1] ?? ""} ${state.zuluYear}`;
+    return;
+  }
+
+  const now = new Date();
+  clockEl.textContent = `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}Z`;
+  dateEl.textContent = `${now.getUTCDate()} ${MONTH_NAMES[now.getUTCMonth()]} ${now.getUTCFullYear()}`;
 }
 
 const WIFI_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 8.5a16 16 0 0 1 20 0M5.5 12.5a11 11 0 0 1 13 0M9 16.5a6 6 0 0 1 6 0"/><circle cx="12" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg>';
@@ -5002,6 +4500,25 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", updateKeyboardInset);
   window.visualViewport.addEventListener("scroll", updateKeyboardInset);
 }
+
+// A tablet's browser keeps its own per-field history of anything typed into a plain text input
+// (keyed off the field's id/name) and offers it back as a suggestion dropdown right above the
+// on-screen keyboard - across every reopen, which is what made a value typed into the ATIS
+// editor days ago resurface as a "recommendation". autocomplete="off" on an input is the
+// standard way to opt it out of that, but this app rebuilds its forms wholesale from many
+// different render functions (detailBody.innerHTML = ...) rather than one shared template, so
+// setting it by hand on every single one would be easy to miss (today and on anything added
+// later). A MutationObserver instead catches every input/textarea the moment it's added to the
+// DOM, from anywhere, without needing each render function to remember to do it itself.
+new MutationObserver((mutations) => {
+  for (const m of mutations) {
+    for (const node of m.addedNodes) {
+      if (!(node instanceof Element)) continue;
+      if (node.matches("input, textarea")) node.setAttribute("autocomplete", "off");
+      for (const el of node.querySelectorAll("input, textarea")) el.setAttribute("autocomplete", "off");
+    }
+  }
+}).observe(document.body, { childList: true, subtree: true });
 
 startApp();
 checkFlightState();

@@ -5,8 +5,8 @@ namespace RealEFB;
 /// <summary>
 /// Talks to SayIntentions.AI's SAPI (https://apipri.sayintentions.ai/sapi) on the pilot's
 /// behalf - used by the Dispatch app for METAR/ATIS lookups and gate requests. Every endpoint
-/// here is a plain GET with the account's API code as a query-string "api_key" param (SAPI's
-/// own documented auth scheme - no bearer token/login step like VptClient needs).
+/// here is a plain GET with the account's API code as a query-string "api_key" param - SAPI's
+/// own documented auth scheme, no bearer token/login step needed.
 ///
 /// SAPI returns HTTP 200 with a JSON body even for a request-level failure (e.g. an unknown
 /// gate, a missing/invalid api_key) - the error shows up as an "error" string field in an

@@ -24,8 +24,8 @@ internal sealed class MainForm : Form
 
     private readonly WebView2 _webView = new() { Dock = DockStyle.Fill };
 
-    // The embedded-site view, used by the browser-backed apps (VPT Performance Calculator,
-    // SimBrief - see APPS in app.js). A second WebView2 rather than an iframe inside RealEFB's
+    // The embedded-site view, used by the browser-backed apps (Website Apps, SimBrief - see
+    // APPS in app.js). A second WebView2 rather than an iframe inside RealEFB's
     // own page, because every one of these sites signs in through a provider that refuses to
     // render in a frame at all (login.live.com sends "X-Frame-Options: deny", which blocks
     // framing from ANY origin, same-origin included). A WebView2 loads its URL as a top-level

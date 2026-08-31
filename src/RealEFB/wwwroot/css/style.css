@@ -181,9 +181,9 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 }
 
 /* ============================== Setup wizard (one-time, or re-run from Settings) ============================== */
-/* Same centered-card-over-wallpaper layout as #init-screen (see below), just wider to fit the
-   VPT step's three fields comfortably and with a persistent Back/Next nav row instead of a
-   single action button. */
+/* Same centered-card-over-wallpaper layout as #init-screen (see below), just wider to fit a
+   step's fields comfortably and with a persistent Back/Next nav row instead of a single action
+   button. */
 
 #wizard-screen {
   height: 100%;
@@ -447,9 +447,9 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   position: relative;
 }
 
-/* Full square product badges (VPT, SimBrief) - each one already has its own background baked
-   in, so it fills the whole tile face (clipped by .tile-icon's overflow:hidden) rather than
-   sitting inset on a colored ground like the drawn stroke icons. */
+/* Full square product badges (SimPrinter, SimCallouts, SimBrief) - each one already has its own
+   background baked in, so it fills the whole tile face (clipped by .tile-icon's overflow:hidden)
+   rather than sitting inset on a colored ground like the drawn stroke icons. */
 .tile-icon img.tile-logo {
   width: 100%;
   height: 100%;
@@ -474,8 +474,8 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   line-height: 1.25;
   overflow: hidden;
   display: -webkit-box;
-  /* Three lines rather than two so a genuinely long app name ("VPT Performance Calculator")
-     reads in full instead of being clipped to an ellipsis mid-word. */
+  /* Three lines rather than two so a genuinely long app name ("SimBrief Performance
+     Calculator") reads in full instead of being clipped to an ellipsis mid-word. */
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
@@ -666,10 +666,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 
 #settings-port,
 #settings-simbrief-id,
-#settings-sayintentions-code,
-#settings-vpt-devkey,
-#settings-vpt-email,
-#settings-vpt-password {
+#settings-sayintentions-code {
   width: 100%;
   min-width: 0;
   background: rgba(255, 255, 255, 0.92);
@@ -706,8 +703,8 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 }
 
 /* Wraps a password-style input with a show/hide eye button - used for every secret-looking
-   field in Settings and the setup wizard (SayIntentions code, VPT dev key/password,
-   eLoadControl key). The input keeps its own id-based styling (width/background/etc above or
+   field in Settings and the setup wizard (SayIntentions code, eLoadControl key). The input
+   keeps its own id-based styling (width/background/etc above or
    in the wizard's own input rule) - this just adds room on the right for the button. */
 .settings-password-field {
   position: relative;
@@ -1127,12 +1124,19 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   background: radial-gradient(120% 90% at 50% 0%, #75bdec 0%, #3f8dd6 40%, #0f3b6e 100%);
 }
 
+/* Evenly-spaced stops (no explicit percentages - CSS distributes them across 0-100% on its
+   own) rather than the bunched-up ones these used to carry: those crammed most of the color
+   change into a narrow band (sunset's navy alone filled the top 46% before pink even started,
+   then squeezed the last two colors into the bottom 18%), which at swatch size read as a flat
+   block up top and a sliver at the bottom rather than a real gradient - as if the preview were
+   a cropped fragment of a bigger image instead of a complete little icon. Same colors either
+   way, just spread evenly so the whole 56px square actually shows the full transition. */
 .settings-swatch-preview[data-preview="sunset"] {
-  background: linear-gradient(180deg, #2c2560 0%, #b8507a 46%, #f7a95c 82%, #ffce7a 100%);
+  background: linear-gradient(180deg, #2c2560, #b8507a, #f7a95c, #ffce7a);
 }
 
 .settings-swatch-preview[data-preview="dusk"] {
-  background: linear-gradient(180deg, #10122c 0%, #3a2360 55%, #7a3a5e 100%);
+  background: linear-gradient(180deg, #10122c, #3a2360, #7a3a5e);
 }
 
 .settings-swatch-preview[data-preview="night"] {
@@ -1141,173 +1145,6 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 
 .settings-swatch-preview[data-preview="graphite"] {
   background: linear-gradient(165deg, #4b5461 0%, #21262e 100%);
-}
-
-/* ============================== Takeoff Performance calculator (VPT) ============================== */
-
-.vpt-form {
-  max-width: 640px;
-}
-
-/* Fixed rather than positioned relative to #detail-screen (which scrolls) - stays put in the
-   corner the whole time the calculator's open, per the "top right corner" brief. */
-.vpt-auth-btn {
-  position: fixed;
-  top: 20px;
-  right: 24px;
-  z-index: 5;
-  background: #22c55e;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 18px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
-}
-
-.vpt-auth-btn:active {
-  transform: scale(0.96);
-}
-
-.vpt-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 14px;
-  margin-top: 10px;
-}
-
-.vpt-grid-spaced {
-  margin-top: 20px;
-}
-
-.vpt-field-wide {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.75);
-  text-shadow: var(--text-shadow);
-  max-width: 460px;
-  margin-top: 18px;
-}
-
-.vpt-field-wide select {
-  background: rgba(255, 255, 255, 0.92);
-  border: none;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 15px;
-  font-weight: 400;
-  text-transform: none;
-  color: #1f2937;
-}
-
-.vpt-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.75);
-  text-shadow: var(--text-shadow);
-}
-
-.vpt-field input,
-.vpt-field select {
-  background: rgba(255, 255, 255, 0.92);
-  border: none;
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 15px;
-  font-weight: 400;
-  text-transform: none;
-  color: #1f2937;
-}
-
-#vpt-calculate {
-  background: #2f9e6e;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 24px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-#vpt-calculate:active {
-  transform: scale(0.96);
-}
-
-.vpt-results-card {
-  max-width: 460px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 10px;
-  padding: 14px 16px;
-  margin-top: 14px;
-}
-
-.vpt-results-card p {
-  font-size: 14px;
-  margin: 4px 0 0;
-}
-
-.vpt-result-head {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.9);
-  padding-bottom: 8px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
-}
-
-.vpt-result-note {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  padding: 6px 0;
-}
-
-/* A negative runway margin - the takeoff doesn't fit. Deliberately louder than a normal row. */
-.vpt-result-row.vpt-result-bad span {
-  color: #ffb4b4;
-  font-weight: 700;
-}
-
-/* Contamination depth, shown only for runway conditions whose formData sets requiresDepth. */
-.vpt-field-hidden {
-  display: none;
-}
-
-.vpt-result-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 14px;
-  padding: 4px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.vpt-result-row:last-child {
-  border-bottom: none;
-}
-
-.vpt-result-row span:first-child {
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.vpt-result-row span:last-child {
-  font-weight: 600;
-  font-family: "SF Mono", Consolas, monospace;
 }
 
 /* ============================== Home button ============================== */
@@ -3006,7 +2843,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 }
 
 /* ============================== Documents ============================== */
-/* Sits directly on the wallpaper, like Settings and the VPT calculator - not inside a white
+/* Sits directly on the wallpaper, like Settings - not inside a white
    .efl-sheet the way EFL's own Weather tab is. The page viewer itself reuses .wx-page/
    .wx-pager/.wx-chart-img as-is (the pager is a self-contained white pill and the image is
    just an image, so neither needs a white backdrop to look right) - only the list and back
@@ -3098,7 +2935,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 
 /* ============================== Dispatch app ============================== */
 /* A modern tablet-app layout - flat translucent cards on #detail-screen's own dark/glass
-   background (same family as Settings/VPT/Documents), sans-serif throughout except the
+   background (same family as Settings/Documents), sans-serif throughout except the
    tabular-nums weight figures and raw METAR/ATIS text (see .wx-raw). Three pieces stack top to
    bottom: the loadsheet document card(s) (see .ls-card), the request/reply message log, then
    the action buttons. */

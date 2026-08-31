@@ -10,8 +10,6 @@ internal sealed record SimBriefSettingsUpdateRequest(string SimBriefId);
 
 internal sealed record SayIntentionsSettingsUpdateRequest(bool Enabled, string SayIntentionsApiCode);
 
-internal sealed record VptSettingsUpdateRequest(bool Enabled, string VptDeveloperKey, string VptEmail, string? VptPassword);
-
 // DataSource is "sayintentions" or "vatsim" - see DispatchDataSource in AppSettings. Whether
 // Dispatch appears at all is no longer part of this - that moved to Settings > Apps along with
 // every other app's switch (see AppsSettingsUpdateRequest).
@@ -36,37 +34,6 @@ internal sealed record DispatchWeatherRequest(string Icao, string Kind);
 internal sealed record DispatchGateRequest(string Airport, string Gate);
 
 internal sealed record DispatchPrintRequest(string Text);
-
-// The simplified TKO Dispatch calculator's own request shape (what the frontend form actually
-// exposes, per the reference screenshot) - mapped onto VPT's much larger documented "data"
-// schema in the /api/vpt/takeoff handler below, leaving everything the simple UI doesn't
-// expose yet (MEL/CDL, NOTAM overrides, non-default units, flex/assumed temp, cgPosition) for
-// VPT to apply its own documented defaults to.
-internal sealed record VptTakeoffRequest(
-    string AircraftFile,
-    string? UserRegistration,
-    string? VirtualAirline,
-    string Airport,
-    string Runway,
-    int? WindDirection,
-    double? WindSpeed,
-    double? TemperatureC,
-    double? QnhHpa,
-    string? RunwayCondition,
-    double? RunwayConditionDepth,
-    string? Flap,
-    string? Rating,
-    string? AntiIce,
-    string? AcBleed,
-    string? ImprovedClimb,
-    double? TakeoffWeight,
-    double? Cg);
-
-// Identifies one aircraft profile per the Aircraft API's three-part key - see VptClient.
-// GetAircraftDataAsync. UserRegistration/VirtualAirline are required fields (not optional
-// ones defaulted away) even though they're almost always null, because VPT's "aircraft" query
-// treats all three as jointly identifying the exact profile.
-internal sealed record VptAircraftDataRequest(string File, string? UserRegistration, string? VirtualAirline);
 
 // One Delays slot: a free-typed reason and a "00:00" time, both left blank if unused.
 internal sealed record DelayEntry(string Reason, string Time);
@@ -173,7 +140,6 @@ internal static class Program
         bool simConnected = false;
         var flightLock = new object();
 
-        var vptClient = new VptClient();
         var sayIntentionsClient = new SayIntentionsClient();
         var vatsimClient = new VatsimClient();
         var simPrinterClient = new SimPrinterClient();
@@ -292,14 +258,6 @@ internal static class Program
             simBriefId = settings.SimBriefId,
             sayIntentionsEnabled = settings.SayIntentionsEnabled,
             sayIntentionsApiCode = settings.SayIntentionsApiCode,
-            vptEnabled = settings.VptEnabled,
-            vptDeveloperKey = settings.VptDeveloperKey,
-            vptEmail = settings.VptEmail,
-            // Every field here, including these two, round-trips in plaintext - Settings
-            // shows them as dots with a reveal toggle rather than hiding them behind a
-            // "leave blank to keep it" placeholder, so a saved password/key can actually be
-            // read back if needed.
-            vptPassword = settings.VptPassword,
             enabledApps = settings.EnabledApps,
             webApps = settings.WebApps,
             dispatchDataSource = settings.DispatchDataSource,
@@ -331,23 +289,6 @@ internal static class Program
         {
             settings.SayIntentionsEnabled = req.Enabled;
             settings.SayIntentionsApiCode = req.SayIntentionsApiCode?.Trim() ?? "";
-            settings.Save();
-
-            return Results.Ok(new { ok = true });
-        });
-
-        // VptPassword is sent (and saved) as-is, not trimmed - a password could legitimately
-        // have leading/trailing spaces, unlike the id/email/key fields elsewhere in this file.
-        // Since GET /api/settings now round-trips the real password (see above), the field
-        // always reflects what's actually saved - no "blank means leave it alone" special
-        // case needed; whatever's in the field is what gets saved, including a deliberately
-        // cleared one.
-        app.MapPost("/api/settings/vpt", (VptSettingsUpdateRequest req) =>
-        {
-            settings.VptEnabled = req.Enabled;
-            settings.VptDeveloperKey = req.VptDeveloperKey?.Trim() ?? "";
-            settings.VptEmail = req.VptEmail?.Trim() ?? "";
-            settings.VptPassword = req.VptPassword ?? "";
             settings.Save();
 
             return Results.Ok(new { ok = true });
@@ -405,130 +346,6 @@ internal static class Program
             settings.Save();
 
             return Results.Ok(new { ok = true });
-        });
-
-        // Pressed by the calculator's "Authenticate VPT" button. Logs in (or reuses the
-        // already-cached token - see VptClient) and, on success, fetches the account's full
-        // aircraft catalog (VPT's "allowedAircrafts" query: system profiles, personal fleet,
-        // virtual airline fleet) in the same round trip so the frontend can populate the
-        // aircraft picker immediately. Only ever called by the user clicking that button.
-        app.MapPost("/api/vpt/authenticate", async () =>
-        {
-            if (settings.VptDeveloperKey.Length == 0 || settings.VptEmail.Length == 0 || settings.VptPassword.Length == 0)
-                return Results.BadRequest(new { ok = false, error = "VPT developer key, email, and password must be set in Settings first." });
-
-            try
-            {
-                using var result = await vptClient.GetAllowedAircraftAsync(settings.VptDeveloperKey, settings.VptEmail, settings.VptPassword);
-                return Results.Ok(new { ok = true, result = result.RootElement.Clone() });
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem($"VPT authentication failed: {ex.Message}", statusCode: 502);
-            }
-        });
-
-        // Pressed when the user selects an aircraft from the picker populated by
-        // /api/vpt/authenticate. Loads that one profile's full data (weight limits,
-        // calculation limits, and the FLAP/RTG/COND/A-I option lists the calculator's
-        // dropdowns are rebuilt from) - VPT's "aircraft" query, stage 2 of its Aircraft API.
-        app.MapPost("/api/vpt/aircraft", async (VptAircraftDataRequest req) =>
-        {
-            if (settings.VptDeveloperKey.Length == 0 || settings.VptEmail.Length == 0 || settings.VptPassword.Length == 0)
-                return Results.BadRequest(new { ok = false, error = "VPT developer key, email, and password must be set in Settings first." });
-            if (string.IsNullOrWhiteSpace(req.File))
-                return Results.BadRequest(new { ok = false, error = "Aircraft profile file is required." });
-
-            try
-            {
-                using var result = await vptClient.GetAircraftDataAsync(settings.VptDeveloperKey, settings.VptEmail, settings.VptPassword, req.File.Trim(), req.UserRegistration, req.VirtualAirline);
-                return Results.Ok(new { ok = true, result = result.RootElement.Clone() });
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem($"VPT aircraft lookup failed: {ex.Message}", statusCode: 502);
-            }
-        });
-
-        // Maps the TKO Dispatch calculator's simplified form onto VPT's documented "performance"
-        // request schema (see VptClient) and returns VPT's raw response. Nothing here calls VPT
-        // except when this endpoint itself is hit by the frontend's Calculate button - no
-        // background/startup calls.
-        app.MapPost("/api/vpt/takeoff", async (VptTakeoffRequest req) =>
-        {
-            if (settings.VptDeveloperKey.Length == 0 || settings.VptEmail.Length == 0 || settings.VptPassword.Length == 0)
-                return Results.BadRequest(new { ok = false, error = "VPT developer key, email, and password must be set in Settings first." });
-
-            if (string.IsNullOrWhiteSpace(req.AircraftFile))
-                return Results.BadRequest(new { ok = false, error = "Aircraft profile file is required." });
-            if (string.IsNullOrWhiteSpace(req.Airport))
-                return Results.BadRequest(new { ok = false, error = "Airport is required." });
-            if (string.IsNullOrWhiteSpace(req.Runway))
-                return Results.BadRequest(new { ok = false, error = "Runway is required." });
-
-            var data = new System.Text.Json.Nodes.JsonObject
-            {
-                ["requestType"] = "TAKEOFF",
-                ["aircraft"] = new System.Text.Json.Nodes.JsonObject
-                {
-                    ["file"] = req.AircraftFile.Trim(),
-                    ["userRegistration"] = req.UserRegistration,
-                    ["virtualAirline"] = req.VirtualAirline,
-                },
-                ["airport"] = req.Airport.Trim().ToUpperInvariant(),
-                ["runway"] = req.Runway.Trim().ToUpperInvariant(),
-                ["weather"] = new System.Text.Json.Nodes.JsonObject
-                {
-                    // Documented as an integer (degrees magnetic) - was previously passed
-                    // through as a JSON string, which is the wrong type for this field.
-                    ["windDirection"] = req.WindDirection,
-                    ["windSpeed"] = req.WindSpeed,
-                    ["temperature"] = req.TemperatureC ?? 15,
-                    ["qnh"] = req.QnhHpa ?? 1013,
-                },
-                // Every field below marked "from formData" is picked from the selected
-                // aircraft's own option list (see app.js's populateVptOptionSelect) and sent
-                // through verbatim - never uppercased, never defaulted to a guessed literal -
-                // because VPT's docs require the exact "value" string from that aircraft's
-                // formData: "custom values not present in formData will be rejected". A null
-                // here means "not specified", which makes VPT apply its own documented default
-                // for that aircraft; that is always safer than inventing a value (e.g. an
-                // acBleed of "AUTO" is rejected outright by a profile whose only options are
-                // ON/OFF, and "NO" is rejected by one whose improved-climb list is YES-only).
-                ["runwayCondition"] = new System.Text.Json.Nodes.JsonObject
-                {
-                    ["state"] = string.IsNullOrWhiteSpace(req.RunwayCondition) ? null : req.RunwayCondition.Trim(),
-                    // Only meaningful for a condition whose formData entry sets requiresDepth.
-                    ["depth"] = req.RunwayConditionDepth,
-                },
-                ["configuration"] = new System.Text.Json.Nodes.JsonObject
-                {
-                    // "OPTIMUM" is the one literal VPT documents as valid for these two
-                    // regardless of what's in formData, so it stays as the fallback here.
-                    ["flap"] = string.IsNullOrWhiteSpace(req.Flap) ? "OPTIMUM" : req.Flap.Trim(),
-                    ["rating"] = string.IsNullOrWhiteSpace(req.Rating) ? "OPTIMUM" : req.Rating.Trim(),
-                    ["antiIce"] = string.IsNullOrWhiteSpace(req.AntiIce) ? null : req.AntiIce.Trim(),
-                    ["acBleed"] = string.IsNullOrWhiteSpace(req.AcBleed) ? null : req.AcBleed.Trim(),
-                    ["improvedClimb"] = string.IsNullOrWhiteSpace(req.ImprovedClimb) ? null : req.ImprovedClimb.Trim(),
-                },
-                ["weight"] = new System.Text.Json.Nodes.JsonObject
-                {
-                    // Left null (RTOW mode, per VPT's documented behavior) if the user didn't
-                    // type a takeoff weight.
-                    ["takeoffWeight"] = req.TakeoffWeight,
-                    ["cg"] = req.Cg,
-                },
-            };
-
-            try
-            {
-                using var result = await vptClient.CalculateAsync(settings.VptDeveloperKey, settings.VptEmail, settings.VptPassword, data);
-                return Results.Ok(new { ok = true, result = result.RootElement.Clone() });
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem($"VPT calculation failed: {ex.Message}", statusCode: 502);
-            }
         });
 
         // The Dispatch app's MET RQST/ATIS RQST keys - routed to whichever data source is

@@ -41,6 +41,9 @@ internal sealed class SimConnectClient : IDisposable
         public double LocalMonthOfYear;
         public double LocalDayOfMonth;
         public double ZuluTimeSeconds;
+        public double ZuluYear;
+        public double ZuluMonthOfYear;
+        public double ZuluDayOfMonth;
         public double Eng1Combustion;
         public double Eng2Combustion;
         public double Eng3Combustion;
@@ -107,6 +110,16 @@ internal sealed class SimConnectClient : IDisposable
                 SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
             sc.AddToDataDefinition(Definitions.FlightData, "ZULU TIME", "seconds",
                 SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
+            // Paired with ZULU TIME above so the status bar can show a Zulu date that actually
+            // matches the Zulu time it's showing next to it, instead of pairing that time with
+            // the local date (which can be a different calendar day around a Zulu-day
+            // boundary) - see checkFlightState in app.js.
+            sc.AddToDataDefinition(Definitions.FlightData, "ZULU YEAR", "number",
+                SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
+            sc.AddToDataDefinition(Definitions.FlightData, "ZULU MONTH OF YEAR", "number",
+                SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
+            sc.AddToDataDefinition(Definitions.FlightData, "ZULU DAY OF MONTH", "number",
+                SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
             sc.AddToDataDefinition(Definitions.FlightData, "GENERAL ENG COMBUSTION:1", "bool",
                 SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
             sc.AddToDataDefinition(Definitions.FlightData, "GENERAL ENG COMBUSTION:2", "bool",
@@ -150,6 +163,9 @@ internal sealed class SimConnectClient : IDisposable
             LocalMonth: (int)value.LocalMonthOfYear,
             LocalDay: (int)value.LocalDayOfMonth,
             ZuluSeconds: value.ZuluTimeSeconds,
+            ZuluYear: (int)value.ZuluYear,
+            ZuluMonth: (int)value.ZuluMonthOfYear,
+            ZuluDay: (int)value.ZuluDayOfMonth,
             EngineCombustion: new[]
             {
                 value.Eng1Combustion != 0,
@@ -228,4 +244,7 @@ internal readonly record struct SimFlightState(
     int LocalMonth,
     int LocalDay,
     double ZuluSeconds,
+    int ZuluYear,
+    int ZuluMonth,
+    int ZuluDay,
     bool[] EngineCombustion);
