@@ -592,6 +592,11 @@ const WIZARD_STEPS = ["simbrief", "webserver", "sayintentions", "done"];
 let wizardIndex = 0;
 let wizardState = {};
 
+// Which of Settings' own top-level tabs (RealEFB/Apps/Dispatch - see renderSettings) is showing
+// right now - remembered across reopening Settings within the same session rather than always
+// resetting to the first tab.
+let settingsActiveTab = "realefb";
+
 async function startWizard() {
   wizardState = {
     simBriefId: "",
@@ -3896,6 +3901,18 @@ async function logFlight(fp) {
   }
 }
 
+// Switches which top-level Settings tab panel is visible - all three are already in the DOM
+// (rendered once in renderSettings), this just toggles which one shows rather than re-rendering.
+function showSettingsTab(tabId) {
+  settingsActiveTab = tabId;
+  for (const btn of detailBody.querySelectorAll(".settings-tab-btn")) {
+    btn.classList.toggle("selected", btn.dataset.tab === tabId);
+  }
+  for (const panel of detailBody.querySelectorAll(".settings-tab-panel")) {
+    panel.classList.toggle("hidden", panel.dataset.tabPanel !== tabId);
+  }
+}
+
 // One retractable topic in Settings - collapsed by default (see renderSettings) so the whole
 // screen reads as a clean list of headings rather than every field for every topic at once.
 function settingsSectionHtml(id, title, bodyHtml) {
@@ -3996,6 +4013,9 @@ async function renderSettings() {
     <p id="settings-apps-status" class="settings-hint"></p>
   `;
 
+  // SayIntentions' own enable-toggle/API-code fields, formerly their own accordion section,
+  // now live directly under the data-source picker instead - same card, since the API code is
+  // only ever relevant once SayIntentions is actually picked as the source right above it.
   const dispatchBody = `
     <label class="settings-label">Data source</label>
     <div class="settings-segmented" id="settings-dispatch-source">
@@ -4007,11 +4027,8 @@ async function renderSettings() {
       <button id="settings-dispatch-save" class="settings-save-btn">Save</button>
     </div>
     <p id="settings-dispatch-status" class="settings-hint"></p>
-  `;
-
-  const sayIntentionsBody = `
+    <div class="settings-subsection-divider"></div>
     ${toggleSwitchHtml("settings-sayintentions-enabled", sayIntentionsEnabled, "Enable SayIntentions.AI integration")}
-    <p class="settings-hint">Used by the Dispatch app when its data source (in the "Dispatch" section above) is set to SayIntentions.AI.</p>
     <label class="settings-label settings-label-spaced" for="settings-sayintentions-code">SayIntentions.AI API code</label>
     ${passwordFieldHtml("settings-sayintentions-code", sayIntentionsApiCode, "Paste your API code")}
     <div class="settings-row settings-row-spaced">
@@ -4020,15 +4037,36 @@ async function renderSettings() {
     <p id="settings-sayintentions-status" class="settings-hint"></p>
   `;
 
+  // Three tabs instead of one long flat list of sections: RealEFB (app-wide config -
+  // Background/Web Server/SimBrief), Apps (home-screen switches, then Website Apps), Dispatch
+  // (data source + SayIntentions credentials, merged into one card - see dispatchBody above).
+  // Each multi-section tab keeps its topics as individually-collapsible cards, same as before;
+  // Dispatch's tab has only the one card, so it's shown unwrapped rather than nested inside a
+  // second "Dispatch" header that would just repeat the tab's own name.
+  const tabBarHtml = `
+    <div class="settings-tab-bar">
+      <button type="button" class="settings-tab-btn" data-tab="realefb">RealEFB</button>
+      <button type="button" class="settings-tab-btn" data-tab="apps">Apps</button>
+      <button type="button" class="settings-tab-btn" data-tab="dispatch">Dispatch</button>
+    </div>`;
+
+  const settingsTabs = {
+    realefb: `
+      ${settingsSectionHtml("background", "Background", backgroundBody)}
+      ${settingsSectionHtml("webserver", "Web Server", webServerBody)}
+      ${settingsSectionHtml("simbrief", "SimBrief", simBriefBody)}`,
+    apps: `
+      ${settingsSectionHtml("apps", "Apps", appsBody)}
+      ${settingsSectionHtml("webapps", "Website Apps", webAppsSectionBodyHtml())}`,
+    dispatch: dispatchBody,
+  };
+
   detailBody.innerHTML = `
     <button id="settings-run-wizard" class="settings-wizard-btn">Run Setup Wizard</button>
-    ${settingsSectionHtml("apps", "Apps", appsBody)}
-    ${settingsSectionHtml("webapps", "Website Apps", webAppsSectionBodyHtml())}
-    ${settingsSectionHtml("webserver", "Web Server", webServerBody)}
-    ${settingsSectionHtml("background", "Background", backgroundBody)}
-    ${settingsSectionHtml("simbrief", "SimBrief", simBriefBody)}
-    ${settingsSectionHtml("dispatch", "Dispatch", dispatchBody)}
-    ${settingsSectionHtml("sayintentions", "SayIntentions.AI", sayIntentionsBody)}
+    ${tabBarHtml}
+    ${Object.entries(settingsTabs)
+      .map(([id, html]) => `<div class="settings-tab-panel" data-tab-panel="${id}">${html}</div>`)
+      .join("")}
   `;
 
   document.getElementById("settings-run-wizard").addEventListener("click", startWizard);
@@ -4040,6 +4078,13 @@ async function renderSettings() {
       document.getElementById(`settings-section-${header.dataset.section}`).classList.toggle("settings-section-collapsed");
     });
   }
+
+  // settingsActiveTab remembers the last tab shown across reopening Settings within the same
+  // session (module-level, declared near WIZARD_STEPS) - defaults to "realefb" the first time.
+  for (const btn of detailBody.querySelectorAll(".settings-tab-btn")) {
+    btn.addEventListener("click", () => showSettingsTab(btn.dataset.tab));
+  }
+  showSettingsTab(settingsActiveTab);
 
   document.getElementById("settings-save").addEventListener("click", saveWebServer);
   document.getElementById("settings-apps-save").addEventListener("click", saveApps);

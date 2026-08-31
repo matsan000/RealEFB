@@ -529,6 +529,48 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   transform: scale(0.98);
 }
 
+/* Settings' own top-level tabs (RealEFB/Apps/Dispatch - see renderSettings/showSettingsTab in
+   app.js) - same pill-button look as .settings-segmented below, just the primary navigation for
+   the whole screen rather than a single field's two-way choice. */
+.settings-tab-bar {
+  display: flex;
+  gap: 8px;
+  max-width: 460px;
+  margin: 0 auto 20px;
+}
+
+.settings-tab-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: var(--text-shadow);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-tab-btn.selected {
+  background: var(--efl-blue);
+  border-color: var(--efl-blue);
+  color: #fff;
+}
+
+.settings-tab-panel.hidden {
+  display: none;
+}
+
+/* Separates the data-source picker from the SayIntentions credentials underneath it within the
+   same Dispatch card (see dispatchBody in renderSettings) - a plain rule rather than a second
+   .settings-section, since nesting a whole second collapsible header in there for just two
+   fields would be more chrome than content. */
+.settings-subsection-divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  margin: 18px 0;
+}
+
 /* One retractable topic - collapsed by default (see renderSettings in app.js), the header row
    toggles just its own body so opening one section doesn't affect any other. */
 .settings-section {
