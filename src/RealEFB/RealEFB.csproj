@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>RealEFB</AssemblyName>
     <RootNamespace>RealEFB</RootNamespace>
-    <Version>0.2.8</Version>
+    <Version>0.2.9</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>
