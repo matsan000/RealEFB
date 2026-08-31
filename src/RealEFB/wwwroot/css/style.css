@@ -1120,17 +1120,18 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   text-shadow: var(--text-shadow);
 }
 
+/* Evenly-spaced stops on every one of these below (no explicit percentages - CSS distributes
+   them across 0-100%/0-360deg on its own) rather than the bunched-up ones they used to carry:
+   those crammed most of the color change into a narrow band (sunset's navy alone used to fill
+   the top 46% before pink even started, then squeezed the last two colors into the bottom 18%;
+   sky's lightest blue similarly only got the first 40%), which at swatch size read as a flat
+   block on one end and a sliver on the other rather than a real gradient - as if the preview
+   were a cropped fragment of a bigger image instead of a complete little icon. Same colors
+   either way, just spread evenly so the whole 56px square actually shows the full transition. */
 .settings-swatch-preview[data-preview="sky"] {
-  background: radial-gradient(120% 90% at 50% 0%, #75bdec 0%, #3f8dd6 40%, #0f3b6e 100%);
+  background: radial-gradient(120% 90% at 50% 0%, #75bdec, #3f8dd6, #0f3b6e);
 }
 
-/* Evenly-spaced stops (no explicit percentages - CSS distributes them across 0-100% on its
-   own) rather than the bunched-up ones these used to carry: those crammed most of the color
-   change into a narrow band (sunset's navy alone filled the top 46% before pink even started,
-   then squeezed the last two colors into the bottom 18%), which at swatch size read as a flat
-   block up top and a sliver at the bottom rather than a real gradient - as if the preview were
-   a cropped fragment of a bigger image instead of a complete little icon. Same colors either
-   way, just spread evenly so the whole 56px square actually shows the full transition. */
 .settings-swatch-preview[data-preview="sunset"] {
   background: linear-gradient(180deg, #2c2560, #b8507a, #f7a95c, #ffce7a);
 }
@@ -1139,12 +1140,18 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   background: linear-gradient(180deg, #10122c, #3a2360, #7a3a5e);
 }
 
+/* Night/Graphite only ever had two stops (start/end), so there was no unevenly-bunched middle
+   to spread out the way Sky/Sunset/Dusk had - the two colors themselves were just so close in
+   value (night's #0a0d14 to #161b26 is a barely-there step) that the transition read as flat,
+   which at swatch size looks the same "something's missing/cut off" way the real bunched-stop
+   cases did. Same starting color as before, just a visibly lighter/darker other end so the
+   gradient actually shows across the whole square instead of reading as a plain block. */
 .settings-swatch-preview[data-preview="night"] {
-  background: linear-gradient(180deg, #0a0d14 0%, #161b26 100%);
+  background: linear-gradient(180deg, #0a0d14 0%, #262e40 100%);
 }
 
 .settings-swatch-preview[data-preview="graphite"] {
-  background: linear-gradient(165deg, #4b5461 0%, #21262e 100%);
+  background: linear-gradient(165deg, #4b5461 0%, #171a20 100%);
 }
 
 /* ============================== Home button ============================== */
