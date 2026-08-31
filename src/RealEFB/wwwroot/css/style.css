@@ -1096,11 +1096,18 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   gap: 6px;
 }
 
+/* A transparent border here used to mean an unselected swatch had no visible edge at all
+   against the app's own similarly-dark background - the drop shadow below is soft/offset, not
+   a real frame, so nothing crisply marked where the little square actually started and ended.
+   That's what made the gradient read as "wrong" until a swatch was tapped: only the selected
+   state's white border gave the eye a clear boundary to judge the color transition against. A
+   faint border now, all the time, gives every swatch that same reference frame regardless of
+   selection - the gradient itself was never actually reversed. */
 .settings-swatch-preview {
   width: 56px;
   height: 56px;
   border-radius: 14px;
-  border: 2px solid transparent;
+  border: 2px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   transition: transform 0.1s ease, border-color 0.15s ease;
 }
