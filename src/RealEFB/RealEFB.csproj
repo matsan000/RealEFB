@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>RealEFB</AssemblyName>
     <RootNamespace>RealEFB</RootNamespace>
-    <Version>0.8.0</Version>
+    <Version>0.9.0</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>
@@ -20,17 +20,21 @@
          SimConnect DLLs, so win-x64 is the only RID it can ever actually run under; pinning it
          here means only that one's native assets get copied, and the rest are never staged in
          the first place.
-         SelfContained is off - the .NET runtime itself (System.Private.CoreLib.dll,
-         System.Windows.Forms.dll, coreclr.dll, ...) is what actually made the publish folder
-         balloon to ~390 files once it was on, and PublishSingleFile (which would have hidden all
-         of that inside one exe) turned out to be incompatible with the vendored SimConnect
-         assembly - it's a mixed native/managed assembly (wraps SimConnect.dll via C++/CLI) that
-         single-file's bundler can't embed correctly, so that route's out. Staying off keeps the
-         publish output small and just RealEFB's own files, at the cost of needing .NET 10
-         Desktop Runtime already on the machine it runs on - Windows prompts for that itself
-         (with a direct download link) the first time someone runs RealEFB.exe without it. -->
+         SelfContained is on - bundles the .NET runtime itself (System.Private.CoreLib.dll,
+         System.Windows.Forms.dll, coreclr.dll, ...) into the publish output rather than relying
+         on .NET 10 Desktop Runtime already being on the machine RealEFB runs on. That's what
+         balloons the folder to ~390 files, but the alternative (framework-dependent, off) meant
+         someone without the runtime installed hit Windows' own native "you must install .NET"
+         dialog the first time they ran RealEFB.exe - shown by the OS/hostfxr before any of this
+         app's own managed code ever gets a chance to run, so there's no way to intercept or
+         reword it from here; its auto-generated download link has also been seen resolving
+         wrong for a runtime this new. Going self-contained sidesteps the entire problem instead
+         of trying to patch around it. PublishSingleFile (which would hide all ~390 files inside
+         one exe) stays OFF regardless - it's incompatible with the vendored SimConnect assembly,
+         a mixed native/managed assembly (wraps SimConnect.dll via C++/CLI) that single-file's
+         bundler can't embed correctly. -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <SelfContained>false</SelfContained>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,8 +45,8 @@
 
     <!-- Self-contained publish means the output folder is RealEFB.exe plus every .NET runtime/
          WinForms DLL it needs (~390 files) - single-file would have hidden all of that inside
-         one exe, but that broke the vendored SimConnect assembly (see the PublishSingleFile note
-         further down), so it's staying multi-file. This is the low-risk fallback for "which one
+         one exe, but that breaks the vendored SimConnect assembly (see the PublishSingleFile
+         note above), so it's staying multi-file. This is the low-risk fallback for "which one
          of these is actually the app" - the only file that says so. -->
     <None Include="README.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

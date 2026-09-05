@@ -27,8 +27,7 @@ RealEFB runs as a Windows desktop app and serves its own interface over your LAN
 
 ## Requirements
 
-- Windows 10/11 (x64)
-- [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) — RealEFB will prompt you for this on first run if it isn't already installed
+- Windows 10/11 (x64) — no separate .NET runtime install needed, RealEFB ships with its own
 - A [SimBrief](https://www.simbrief.com/) account, for flight plan import
 - Microsoft Flight Simulator 2024 — optional, only needed for live sim data
 
