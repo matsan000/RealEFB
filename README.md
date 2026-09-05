@@ -4,6 +4,8 @@ A self-hosted Electronic Flight Bag built to feel like the real thing — SimBri
 
 RealEFB runs as a Windows desktop app and serves its own interface over your LAN, so a tablet propped in the cockpit acts as a genuine extension of the same screen — not a second, independently-drifting EFB. Home-screen tiles and settings stay live-synced across every connected device automatically, and background work (like flight tracking) keeps going whether or not anyone has that tab open anywhere.
 
+![RealEFB home screen](Assets/screenshots/home-screen.png)
+
 ## Features
 
 - **SimBrief integration** — import your latest flight plan by username or pilot ID, no manual entry.
@@ -16,6 +18,12 @@ RealEFB runs as a Windows desktop app and serves its own interface over your LAN
 - **Website Apps** — add any site as its own home-screen app, with your own name, URL, and (optionally) an icon you upload yourself. Seeded with SimBrief Dispatch, MSFS Flight Planner, and Navigraph Charts Web — all editable or removable. One-click presets are also offered for [SimPrinter](https://github.com/matsan000/SimPrinter) and [SimCallouts](https://github.com/matsan000/SimCallouts)' own local web dashboards, if you run either. Embedded in the app on desktop, opened as a new tab on a tablet's browser.
 - **Live sim data** — reads aircraft state from Microsoft Flight Simulator via SimConnect when it's running. The status bar always shows a Zulu clock — the sim's own Zulu time once connected, your device's real-world UTC time otherwise.
 - **Settings** — organized into RealEFB (background, web server, SimBrief), Apps (which home-screen tiles are on, plus Website Apps), and Dispatch (data source and SayIntentions credentials) tabs.
+
+## Screenshots
+
+| Fuel/FMC | Waypoints | Flight Log |
+| --- | --- | --- |
+| ![Fuel/FMC tab](Assets/screenshots/fuel-fmc.png) | ![Waypoints tab](Assets/screenshots/waypoints.png) | ![Flight Log tab](Assets/screenshots/flight-log.png) |
 
 ## Requirements
 
