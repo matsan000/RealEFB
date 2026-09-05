@@ -1,5 +1,6 @@
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text.Json;
 
 namespace RealEFB;
@@ -248,12 +249,14 @@ internal static class Program
 
         // Minimal placeholder endpoint so the frontend has something real to call - the status
         // bar's connection indicator pings this to confirm the server is actually reachable
-        // rather than just assuming so.
+        // rather than just assuming so. Version is read off the assembly itself (set from
+        // RealEFB.csproj's own <Version>) rather than hardcoded here a second time - this used
+        // to say a fixed "0.1.0" that just never got updated across a dozen real version bumps.
         app.MapGet("/api/status", () => Results.Ok(new
         {
             ok = true,
             name = "RealEFB",
-            version = "0.1.0",
+            version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown",
             serverTimeUtc = DateTime.UtcNow
         }));
 
