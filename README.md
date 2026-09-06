@@ -1,5 +1,7 @@
 # RealEFB
 
+[![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.gg/Qpxg4tZCc8)
+
 A self-hosted Electronic Flight Bag built to feel like the real thing — SimBrief flight plans, an airline-style flight log, and live dispatch, usable from a tablet on your network.
 
 RealEFB runs as a Windows desktop app and serves its own interface over your LAN, so a tablet propped in the cockpit acts as a genuine extension of the same screen — not a second, independently-drifting EFB. Home-screen tiles and settings stay live-synced across every connected device automatically, and background work (like flight tracking) keeps going whether or not anyone has that tab open anywhere.
