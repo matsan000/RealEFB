@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
@@ -43,15 +45,27 @@ internal sealed class MainForm : Form
     // TableLayoutPanel below.
     private readonly WebView2 _printView = new() { Visible = false, Size = new Size(1024, 768) };
 
-    private readonly Panel _siteBar = new() { Dock = DockStyle.Fill, Height = 34, Visible = false };
+    // Same dark slate as the web UI's own dock/home button (--dock-bg in style.css), so leaving
+    // an embedded site reads as part of RealEFB rather than a stock gray Windows toolbar.
+    // Height/width are set in ApplyDpiScaledSizes, not here.
+    private readonly Panel _siteBar = new() { Dock = DockStyle.Fill, Visible = false, BackColor = Color.FromArgb(15, 23, 42) };
     private readonly Button _siteBack = new()
     {
-        Text = "◀ Back to RealEFB",
+        Text = "←  Back to RealEFB",
         Dock = DockStyle.Left,
-        Width = 150,
         FlatStyle = FlatStyle.Flat,
+        ForeColor = Color.White,
+        BackColor = Color.FromArgb(30, 41, 59),
+        Font = new Font("Segoe UI Semibold", 10F),
+        Cursor = Cursors.Hand,
     };
-    private readonly Label _siteTitle = new() { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
+    private readonly Label _siteTitle = new()
+    {
+        Dock = DockStyle.Fill,
+        TextAlign = ContentAlignment.MiddleLeft,
+        ForeColor = Color.FromArgb(203, 213, 225),
+        Font = new Font("Segoe UI", 10F),
+    };
 
     // Shared by every WebView2 control below - all three need to be given the *same*
     // environment object, not just equivalent ones, so they behave as one coherent browser
@@ -67,11 +81,14 @@ internal sealed class MainForm : Form
 
         Text = "RealEFB";
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
-        ClientSize = new Size(820, 1040);
-        MinimumSize = new Size(480, 640);
+        ClientSize = InitialClientSize();
+        ApplyDpiScaledSizes();
+        DpiChanged += (_, _) => ApplyDpiScaledSizes();
         StartPosition = FormStartPosition.CenterScreen;
 
         _siteBack.FlatAppearance.BorderSize = 0;
+        _siteBack.FlatAppearance.MouseOverBackColor = Color.FromArgb(51, 65, 85);
+        _siteBack.FlatAppearance.MouseDownBackColor = Color.FromArgb(71, 85, 105);
         _siteBack.Click += (_, _) => CloseEmbeddedSite();
         _siteBar.Controls.Add(_siteTitle);
         _siteBar.Controls.Add(_siteBack);
@@ -142,6 +159,16 @@ internal sealed class MainForm : Form
                     var title = root.TryGetProperty("title", out var t) ? t.GetString() : null;
                     if (url is not null) await OpenEmbeddedSiteAsync(url, title ?? "");
                 }
+                else if (type == "titlebar")
+                {
+                    // The top edge of the page's current wallpaper - see syncTitleBar in app.js.
+                    var hex = root.TryGetProperty("color", out var c) ? c.GetString() : null;
+                    if (hex is not null && TryParseHexColor(hex, out var color))
+                    {
+                        _titleBarColor = color;
+                        ApplyTitleBarColor();
+                    }
+                }
             };
 
             _webView.CoreWebView2.Navigate(localUrl);
@@ -166,6 +193,72 @@ internal sealed class MainForm : Form
         };
 
         Instance = this;
+    }
+
+    // Windows 11's DWM attributes for the native title bar: dark mode (light caption buttons), then
+    // the caption, border and title-text colors themselves. Windows 10 doesn't know the color
+    // ones - the call just fails, harmlessly - and keeps the plain dark title bar from the first.
+    private const int DwmwaUseImmersiveDarkMode = 20;
+    private const int DwmwaBorderColor = 34;
+    private const int DwmwaCaptionColor = 35;
+    private const int DwmwaTextColor = 36;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+    // Starts as the default (Sky) wallpaper's top edge, so the very first frame isn't a white
+    // caption flashing before the page loads and reports its real one.
+    private Color _titleBarColor = Color.FromArgb(0x5C, 0x70, 0x86);
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        ApplyTitleBarColor();
+    }
+
+    // Keeps Windows' own frame - snap layouts, resize edges, the real min/max/close buttons all keep
+    // working - but colors it to match the top edge of the page's wallpaper, so the title bar and
+    // the app read as one surface instead of a stock white Windows caption stacked on top of it.
+    private void ApplyTitleBarColor()
+    {
+        if (!IsHandleCreated) return;
+        var dark = 1;
+        DwmSetWindowAttribute(Handle, DwmwaUseImmersiveDarkMode, ref dark, sizeof(int));
+        var caption = ColorTranslator.ToWin32(_titleBarColor);
+        DwmSetWindowAttribute(Handle, DwmwaCaptionColor, ref caption, sizeof(int));
+        DwmSetWindowAttribute(Handle, DwmwaBorderColor, ref caption, sizeof(int));
+        var text = ColorTranslator.ToWin32(Color.FromArgb(0xF1, 0xF5, 0xF9));
+        DwmSetWindowAttribute(Handle, DwmwaTextColor, ref text, sizeof(int));
+    }
+
+    private static bool TryParseHexColor(string hex, out Color color)
+    {
+        color = default;
+        if (hex.Length != 7 || hex[0] != '#' || !int.TryParse(hex.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
+            return false;
+        color = Color.FromArgb((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
+        return true;
+    }
+
+    // Every pixel size in this form is written at 100% scaling (96 DPI). Now that the process is
+    // per-monitor DPI aware (see Program.Main), WinForms no longer stretches the window for us,
+    // so they're converted to the current monitor's real pixels here - at startup, and again
+    // whenever the window is dragged onto a monitor with a different scale.
+    private void ApplyDpiScaledSizes()
+    {
+        MinimumSize = new Size(LogicalToDeviceUnits(480), LogicalToDeviceUnits(640));
+        _siteBar.Height = LogicalToDeviceUnits(44);
+        _siteBack.Width = LogicalToDeviceUnits(180);
+    }
+
+    // 820x1040 at 100% - a portrait, tablet-shaped window - capped to 90% of the screen it opens
+    // on, since a 1080p laptop at 125% scaling has well under 1040px of height to give.
+    private Size InitialClientSize()
+    {
+        var area = Screen.FromPoint(Cursor.Position).WorkingArea;
+        return new Size(
+            Math.Min(LogicalToDeviceUnits(820), (int)(area.Width * 0.9)),
+            Math.Min(LogicalToDeviceUnits(1040), (int)(area.Height * 0.9)));
     }
 
     private bool _siteViewWired;

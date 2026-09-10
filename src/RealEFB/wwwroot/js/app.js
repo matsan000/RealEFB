@@ -1,24 +1,30 @@
-// Simple line-style icon paths (24x24 viewBox), kept flat/minimal on purpose rather than
-// colorful emoji - that's the "cartoony" look this replaced. Path data is straight from
-// Lucide (ISC-licensed, ~24x24 grid, stroke-width 2) rather than hand-drawn - the earlier
-// hand-drawn set didn't sit on the grid quite right (the "documents" fold and "dispatch"
-// speech-bubble tail in particular), which read as slightly lopsided at tile size. Only the
-// stroke-width itself is overridden, down to 1.6 (see .tile-icon svg in style.css) - everything
-// else here renders as Lucide drew it.
+// Font Awesome Free, solid style - vendored locally, see wwwroot/vendor/fontawesome and its
+// <link>s in index.html. Returns the markup for one icon from its bare FA name ("gear", not
+// "fa-gear"). Size and color come entirely from whatever contains it (.tile-icon i,
+// .efl-tab-icon, ...), so the same icon can sit on a tile face, in a list row or inside a
+// button without a per-use variant here. aria-hidden since everywhere one is used either has a
+// visible text label beside it or an aria-label on the button wrapping it.
+function faIcon(name) {
+  return `<i class="fa-solid fa-${name}" aria-hidden="true"></i>`;
+}
+
+// Named icons shared by the home screen (id-matched against APPS/SETTINGS_TILE - see
+// makeTileEl) and Settings > Website Apps - solid style, the same as every other icon in the
+// app, so they all carry one visual weight.
 const ICONS = {
-  documents: '<svg viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8M16 13H8M16 17H8"/></svg>',
-  logbook: '<svg viewBox="0 0 24 24"><path d="M12 5v16"/><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"/></svg>',
-  settings: '<svg viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>',
-  dispatch: '<svg viewBox="0 0 24 24"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>',
-  tracker: '<svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>',
+  documents: faIcon("folder-open"),
+  logbook: faIcon("book-open"),
+  settings: faIcon("gear"),
+  dispatch: faIcon("tower-broadcast"),
+  tracker: faIcon("route"),
   // The fallback face for a Website App (see WEB_APP_TILE_COLOR/webAppToTile) that hasn't had
   // an icon uploaded for it - a plain generic globe, deliberately not any particular product's
   // mark. Real per-site logos only ever come from a user's own upload (see openWebAppEditor),
   // never shipped with RealEFB itself - see WebApp.Icon's own note in AppSettings.cs for why.
-  webapp: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
+  webapp: faIcon("globe"),
   // Add Website App's quick-add presets (see WEBSITE_APP_QUICK_ADD) - SimPrinter/SimCallouts icons.
-  simprinter: '<svg viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>',
-  simcallouts: '<svg viewBox="0 0 24 24"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14"/><path d="M8 6v8"/></svg>',
+  simprinter: faIcon("print"),
+  simcallouts: faIcon("bullhorn"),
 };
 
 // Every built-in app that can appear on the home screen, in the order they appear there. User-
@@ -30,14 +36,16 @@ const ICONS = {
 //             can't host one, so it gets a new tab.
 // Settings is deliberately not in here: it's always shown, since switching it off would leave
 // no way to switch anything back on.
+// gradient is each tile's own [top-left, bottom-right] pair for its icon (see .tile-icon in
+// style.css); color is the flat base the shaded fallback is derived from when there isn't one.
 const APPS = [
-  { id: "logbook", label: "EFL", color: "#a8712f", kind: "native" },
-  { id: "dispatch", label: "Dispatch", color: "#2f7dc2", kind: "native" },
-  { id: "tracker", label: "Flight Tracker", color: "#1f7a4d", kind: "native" },
-  { id: "documents", label: "Documents", color: "#5a6b7d", kind: "native" },
+  { id: "logbook", label: "EFL", color: "#f08c2e", gradient: ["#ffb454", "#e8590c"], kind: "native" },
+  { id: "dispatch", label: "Dispatch", color: "#2f7dc2", gradient: ["#5aa9ff", "#1c5fd4"], kind: "native" },
+  { id: "tracker", label: "Flight Tracker", color: "#12a37f", gradient: ["#3ddc97", "#0b7f6a"], kind: "native" },
+  { id: "documents", label: "Documents", color: "#7a5af8", gradient: ["#a78bfa", "#5b33d6"], kind: "native" },
 ];
 
-const SETTINGS_TILE = { id: "settings", label: "Settings", color: "#6b7280" };
+const SETTINGS_TILE = { id: "settings", label: "Settings", color: "#6b7280", gradient: ["#9aa4b2", "#4b5563"] };
 
 // Every Website App tile shares one flat, brand-neutral color (see ICONS.webapp) rather than
 // each getting its own - there's no per-site color to derive one from the way the old fixed
@@ -46,13 +54,42 @@ const SETTINGS_TILE = { id: "settings", label: "Settings", color: "#6b7280" };
 // through behind the generic globe on one that hasn't had an icon added yet.
 const WEB_APP_TILE_COLOR = "#3d6d94";
 
+// A Website App without an uploaded icon gets its initials on one of these gradients, picked by
+// hashing its name - stable across reloads and devices, and different enough between apps that
+// several of them no longer read as a row of identical globes.
+const WEB_APP_GRADIENTS = [
+  ["#38bdf8", "#1d4ed8"],
+  ["#f472b6", "#be185d"],
+  ["#34d399", "#047857"],
+  ["#fbbf24", "#d97706"],
+  ["#a78bfa", "#6d28d9"],
+  ["#f87171", "#b91c1c"],
+  ["#2dd4bf", "#0f766e"],
+  ["#818cf8", "#4338ca"],
+];
+
+function webAppGradient(name) {
+  let h = 0;
+  for (const ch of String(name || "")) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+  return WEB_APP_GRADIENTS[h % WEB_APP_GRADIENTS.length];
+}
+
+// "SimBrief Dispatch" -> "SD", "Navigraph Charts Web" -> "NC", a one-word name -> its first two letters.
+function webAppMonogram(name) {
+  const words = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "?";
+  return (words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2)).toUpperCase();
+}
+
 // A Settings > Website Apps entry (see AppSettings.WebApp), reshaped into the same {id, label,
 // color, kind, url, icon} tile shape makeTileEl/openDetail already know how to render/open -
 // same "browser" kind the old fixed SimBrief tile used, so nothing about opening one is
 // new. "webapp-" prefixed so its DOM id can never collide with a built-in app's.
 function webAppToTile(w) {
   const color = w.icon && WHITE_BG_WEBAPP_LOGOS.has(w.icon) ? WEB_APP_WHITE_TILE_COLOR : WEB_APP_TILE_COLOR;
-  return { id: `webapp-${w.id}`, label: w.name, color, kind: "browser", url: w.url, icon: w.icon || null };
+  const gradient = color === WEB_APP_WHITE_TILE_COLOR ? [color, color] : webAppGradient(w.name);
+  const monogram = w.icon ? null : webAppMonogram(w.name);
+  return { id: `webapp-${w.id}`, label: w.name, color, gradient, kind: "browser", url: w.url, icon: w.icon || null, monogram };
 }
 
 // App id -> whether its tile is shown, from Settings > Apps. An id that isn't in here yet
@@ -75,7 +112,7 @@ let webAppsState = [];
 // form fields; nothing here checks either app is actually installed or running, same as if the
 // user typed the URL in by hand.
 //
-// icon (a plain ICONS key) is only for the small line-icon on the quick-add button itself - the
+// icon (a plain ICONS key) is only for the small glyph on the quick-add button itself - the
 // tile it actually creates uses logo instead, each project's own real mark (cropped to just the
 // icon, background removed - see wwwroot/assets/webapp-icons and the note in each PNG's own
 // generation history) rather than a generic stand-in, since these are specifically the user's
@@ -96,14 +133,14 @@ const WEB_APP_WHITE_TILE_COLOR = "#ffffff";
 // The 8 sections along the bottom of the loaded-flight EFL screen. No content behind any of
 // them yet - just the navigation shell, filled in later.
 const EFL_TABS = [
-  { id: "flightlog", label: "Flight Log", icon: '<path d="M4 6h16M4 12h16M4 18h10"/>' },
-  { id: "fuelfmc", label: "Fuel/FMC", icon: '<path d="M12 3c3 4 5 7 5 10a5 5 0 1 1-10 0c0-3 2-6 5-10z"/>' },
-  { id: "waypoints", label: "Waypoints", icon: '<path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.2"/>' },
-  { id: "weather", label: "Weather", icon: '<path d="M7 17a4 4 0 1 1 1.3-7.8 5 5 0 0 1 9.6 1.9A3.5 3.5 0 0 1 17.5 18H7z"/>' },
-  { id: "notams", label: "NOTAMS", icon: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>' },
-  { id: "vp", label: "VP", icon: '<path d="M3 17l6-6 4 4 8-9"/>' },
-  { id: "atc", label: "ATC", icon: '<path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2" y="13" width="4" height="7" rx="2"/><rect x="18" y="13" width="4" height="7" rx="2"/><path d="M20 20v1a2 2 0 0 1-2 2h-2"/>' },
-  { id: "pdf", label: "PDF", icon: '<path d="M6 2h9l5 5v15H6V2z"/><path d="M15 2v5h5"/>' },
+  { id: "flightlog", label: "Flight Log", icon: "clipboard-list" },
+  { id: "fuelfmc", label: "Fuel/FMC", icon: "gas-pump" },
+  { id: "waypoints", label: "Waypoints", icon: "location-dot" },
+  { id: "weather", label: "Weather", icon: "cloud-sun" },
+  { id: "notams", label: "NOTAMS", icon: "triangle-exclamation" },
+  { id: "vp", label: "VP", icon: "chart-line" },
+  { id: "atc", label: "ATC", icon: "headset" },
+  { id: "pdf", label: "PDF", icon: "file-pdf" },
 ];
 
 // The Standard IATA Delay Codes (AHM730/731), used by the Flight Log tab's Delays picker
@@ -302,13 +339,161 @@ const IATA_DELAY_CODES = [
   },
 ];
 
+// Built-in wallpapers - all CSS (see the Wallpaper section of style.css), so nothing to fetch or
+// license - plus "photo", the user's own picture (see applyWallpaper/wireWallpaperSection).
+// titlebar is the color along each one's top edge, which the desktop app paints its own title
+// bar to match (see syncTitleBar).
 const WALLPAPERS = [
-  { id: "sky", label: "Sky" },
-  { id: "sunset", label: "Sunset" },
-  { id: "dusk", label: "Dusk" },
-  { id: "night", label: "Night" },
-  { id: "graphite", label: "Graphite" },
+  { id: "sky", label: "Sky", titlebar: "#5c7086" },
+  { id: "horizon", label: "Horizon", titlebar: "#0e2340" },
+  { id: "clouds", label: "Clouds", titlebar: "#244b74" },
+  { id: "stratosphere", label: "Stratosphere", titlebar: "#03050b" },
+  { id: "sunset", label: "Sunset", titlebar: "#4a4356" },
+  { id: "dusk", label: "Dusk", titlebar: "#23263a" },
+  { id: "night", label: "Night", titlebar: "#0d1118" },
+  { id: "graphite", label: "Graphite", titlebar: "#4b5461" },
 ];
+const PHOTO_TITLEBAR_COLOR = "#111827";
+
+// Tells the desktop app which color to paint its native Windows title bar (see
+// ApplyTitleBarColor in MainForm.cs) - the top edge of the current wallpaper, so the title bar
+// and the app read as one surface. A no-op in a tablet's browser, which has no title bar of ours.
+function syncTitleBar() {
+  if (!(window.chrome && window.chrome.webview)) return;
+  const id = document.body.dataset.wallpaper || "sky";
+  const color = id === "photo" ? PHOTO_TITLEBAR_COLOR : (WALLPAPERS.find((w) => w.id === id) || WALLPAPERS[0]).titlebar;
+  window.chrome.webview.postMessage(JSON.stringify({ type: "titlebar", color }));
+}
+const WALLPAPER_KEY = "realefb.wallpaper";
+const WALLPAPER_PHOTO_KEY = "realefb.wallpaperPhoto";
+
+function savedWallpaperPhoto() {
+  try {
+    return localStorage.getItem(WALLPAPER_PHOTO_KEY);
+  } catch {
+    return null;
+  }
+}
+
+// Same logic as the inline script at the top of index.html, which runs before first paint.
+// --wallpaper-photo is set whenever a photo is saved, not only while it's the one in use, so its
+// thumbnail in Settings can still show it.
+function applyWallpaper(id) {
+  const photo = savedWallpaperPhoto();
+  document.body.style.setProperty("--wallpaper-photo", photo ? `url("${photo}")` : "none");
+  if (id === "photo" && !photo) id = "sky";
+  document.body.dataset.wallpaper = id;
+  try {
+    localStorage.setItem(WALLPAPER_KEY, id);
+  } catch {
+    // Storage disabled - the choice just won't survive a reload.
+  }
+  syncTitleBar();
+}
+
+// Shrinks a picked photo to at most 1920px on its long edge, as a JPEG, before it's stored - a
+// photo straight off a phone camera is 5-15MB, well past the ~5MB localStorage gives a site,
+// while 1920px is already more than any screen this runs on needs for a background.
+function resizePhotoToDataUrl(file, maxEdge = 1920, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("That file couldn't be read as an image."));
+    };
+    img.src = url;
+  });
+}
+
+// Settings > RealEFB > Wallpaper. Every thumbnail is the real wallpaper shrunk down (it shares
+// the exact CSS rules), and the last slot is the user's own photo - an "Add photo" slot until
+// one is picked. Per device, like the old swatches: each tablet keeps its own.
+function wallpaperSectionBodyHtml() {
+  const current = document.body.dataset.wallpaper || "sky";
+  const hasPhoto = !!savedWallpaperPhoto();
+  const optionHtml = (id, label) => `
+      <button type="button" class="wallpaper-option ${id === current ? "selected" : ""}" data-wallpaper="${id}" aria-label="${label}">
+        <span class="wallpaper-thumb" data-wallpaper="${id}">${faIcon("circle-check")}</span>
+        <span class="wallpaper-label">${label}</span>
+      </button>`;
+  const photoSlot = hasPhoto
+    ? optionHtml("photo", "Your photo")
+    : `
+      <label class="wallpaper-option">
+        <span class="wallpaper-thumb wallpaper-thumb-add">${faIcon("image")}</span>
+        <span class="wallpaper-label">Add photo</span>
+        <input type="file" accept="image/*" class="wallpaper-photo-input" />
+      </label>`;
+  return `
+    <div class="wallpaper-grid">
+      ${WALLPAPERS.map((w) => optionHtml(w.id, w.label)).join("")}
+      ${photoSlot}
+    </div>
+    <div class="wallpaper-photo-actions ${hasPhoto ? "" : "hidden"}">
+      <label class="wallpaper-photo-btn">${faIcon("image")} Change photo<input type="file" accept="image/*" class="wallpaper-photo-input" /></label>
+      <button type="button" class="wallpaper-photo-btn" id="wallpaper-photo-remove">${faIcon("trash-can")} Remove photo</button>
+    </div>
+    <p id="wallpaper-status" class="settings-hint">Saved on this device only - each tablet keeps its own wallpaper.</p>`;
+}
+
+function wireWallpaperSection() {
+  const section = document.getElementById("settings-section-background");
+  if (!section) return;
+  const status = document.getElementById("wallpaper-status");
+  // Adding or removing a photo changes which slots exist, so the section body is rebuilt
+  // rather than patched.
+  const rerender = () => {
+    section.querySelector(".settings-section-body").innerHTML = wallpaperSectionBodyHtml();
+    wireWallpaperSection();
+  };
+
+  for (const btn of section.querySelectorAll("button.wallpaper-option")) {
+    btn.addEventListener("click", () => {
+      applyWallpaper(btn.dataset.wallpaper);
+      for (const o of section.querySelectorAll(".wallpaper-option")) o.classList.toggle("selected", o === btn);
+    });
+  }
+
+  for (const input of section.querySelectorAll(".wallpaper-photo-input")) {
+    input.addEventListener("change", async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      status.classList.remove("settings-error");
+      status.textContent = "Loading photo...";
+      try {
+        localStorage.setItem(WALLPAPER_PHOTO_KEY, await resizePhotoToDataUrl(file));
+        applyWallpaper("photo");
+        rerender();
+      } catch (err) {
+        status.textContent =
+          err && err.name === "QuotaExceededError"
+            ? "That photo is too large to store on this device - try a smaller one."
+            : (err && err.message) || "Could not use that photo.";
+        status.classList.add("settings-error");
+      }
+    });
+  }
+
+  document.getElementById("wallpaper-photo-remove")?.addEventListener("click", () => {
+    try {
+      localStorage.removeItem(WALLPAPER_PHOTO_KEY);
+    } catch {
+      // Nothing stored to remove.
+    }
+    applyWallpaper(document.body.dataset.wallpaper === "photo" ? "sky" : document.body.dataset.wallpaper);
+    rerender();
+  });
+}
 
 // Lightens (positive percent) or darkens (negative) a "#rrggbb" color - used to turn each
 // tile's flat base color into a light-to-dark gradient so icons read as glossy/beveled
@@ -343,15 +528,15 @@ function makeTileEl(tile) {
   const el = document.createElement("div");
   el.className = "tile";
   el.id = `tile-${tile.id}`;
-  const light = shadeColor(tile.color, 12);
-  const dark = shadeColor(tile.color, -22);
+  const [light, dark] = tile.gradient || [shadeColor(tile.color, 16), shadeColor(tile.color, -18)];
   // A Website App with its own uploaded icon fills the whole face (tile-logo, same treatment
-  // the old fixed SimBrief tile used); everything else - built-in apps, and a Website App
-  // with none - uses the small inset drawn icon from ICONS, id-matched for built-ins or the
-  // generic globe fallback for a Website App (see ICONS.webapp/webAppToTile).
+  // the old fixed SimBrief tile used); one without shows its initials (see webAppToTile), and
+  // every built-in app its glyph from ICONS.
   const iconHtml = tile.icon
     ? `<img class="tile-logo" src="${escapeAttr(tile.icon)}" alt="" />`
-    : ICONS[tile.id] || ICONS.webapp;
+    : tile.monogram
+      ? `<span class="tile-monogram">${escapeAttr(tile.monogram)}</span>`
+      : ICONS[tile.id] || ICONS.webapp;
   el.innerHTML = `
     <span class="tile-icon" style="--icon-light:${light};--icon-dark:${dark}">${iconHtml}</span>
     <span class="tile-label">${escapeAttr(tile.label)}</span>
@@ -554,8 +739,6 @@ function toggleSwitchHtml(id, checked, label) {
     </label>`;
 }
 
-const EYE_ICON_SVG = '<svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
-
 // Builds one password-style field with a show/hide eye button - shared by every secret-looking
 // field in Settings and the setup wizard (currently just the SayIntentions code). These all
 // round-trip their real saved value now (see GET /api/settings),
@@ -565,7 +748,7 @@ function passwordFieldHtml(id, value, placeholder) {
   return `
     <div class="settings-password-field">
       <input type="password" id="${id}" placeholder="${escapeAttr(placeholder || "")}" value="${escapeAttr(value || "")}" autocomplete="off" />
-      <button type="button" class="settings-password-eye" data-target="${id}" aria-label="Show password" tabindex="-1">${EYE_ICON_SVG}</button>
+      <button type="button" class="settings-password-eye" data-target="${id}" aria-label="Show password" tabindex="-1">${faIcon("eye")}</button>
     </div>`;
 }
 
@@ -579,6 +762,7 @@ function wirePasswordEyeToggles(root) {
       input.type = revealing ? "text" : "password";
       btn.classList.toggle("settings-password-eye-active", revealing);
       btn.setAttribute("aria-label", revealing ? "Hide password" : "Show password");
+      btn.innerHTML = faIcon(revealing ? "eye-slash" : "eye");
     });
   }
 }
@@ -797,6 +981,76 @@ let trackerAircraftMarker = null;
 let trackerTrail = null;
 let trackerFollow = true;
 let trackerHasFix = false;
+let trackerBaseLayer = null;
+
+// Basemaps for the map-type picker (see setTrackerLayer) - all free services that need no API
+// key. Esri's imagery also sets detectRetina (one zoom level deeper at half size) so the photo
+// stays sharp above 100% screen scaling; it's left off the layers that carry text, where it would
+// shrink every label to unreadable.
+const OSM_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+const ESRI_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services";
+const TRACKER_LAYERS = [
+  {
+    id: "map",
+    label: "Map",
+    icon: "map",
+    tiles: [{ url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", options: { maxZoom: 19, attribution: OSM_ATTRIBUTION } }],
+  },
+  {
+    id: "satellite",
+    label: "Satellite",
+    icon: "satellite",
+    tiles: [
+      { url: `${ESRI_TILES}/World_Imagery/MapServer/tile/{z}/{y}/{x}`, options: { maxZoom: 19, detectRetina: true, attribution: "Imagery &copy; Esri, Maxar, Earthstar Geographics" } },
+      // Country/city names over the imagery - a raw photo gives nothing to orient by at cruise zoom.
+      { url: `${ESRI_TILES}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`, options: { maxZoom: 19, zIndex: 2 } },
+    ],
+  },
+  {
+    id: "terrain",
+    label: "Terrain",
+    icon: "mountain-sun",
+    tiles: [{ url: `${ESRI_TILES}/World_Topo_Map/MapServer/tile/{z}/{y}/{x}`, options: { maxZoom: 19, attribution: "Tiles &copy; Esri, USGS, NOAA" } }],
+  },
+  {
+    id: "dark",
+    label: "Dark",
+    icon: "moon",
+    // Esri only renders this basemap down to zoom 16; Leaflet upscales past that.
+    tiles: [
+      { url: `${ESRI_TILES}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`, options: { maxZoom: 19, maxNativeZoom: 16, attribution: "Tiles &copy; Esri, HERE, Garmin" } },
+      { url: `${ESRI_TILES}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`, options: { maxZoom: 19, maxNativeZoom: 16, zIndex: 2 } },
+    ],
+  },
+];
+
+// Aviation's "magenta line" for the planned route - it reads on every basemap above, light or
+// dark, where the old cyan dots disappeared into the lighter ones.
+const TRACKER_ROUTE_COLOR = "#e03fd8";
+
+function savedTrackerLayerId() {
+  try {
+    return localStorage.getItem("realefb.trackerLayer") || "map";
+  } catch {
+    return "map";
+  }
+}
+
+// Swaps the basemap under the route/trail/aircraft - those live in Leaflet's overlay and marker
+// panes, above every tile layer, so they're untouched. Remembered per device, like the wallpaper.
+function setTrackerLayer(id) {
+  if (!trackerMap) return;
+  const def = TRACKER_LAYERS.find((l) => l.id === id) || TRACKER_LAYERS[0];
+  if (trackerBaseLayer) trackerMap.removeLayer(trackerBaseLayer);
+  trackerBaseLayer = L.layerGroup(def.tiles.map((t) => L.tileLayer(t.url, t.options))).addTo(trackerMap);
+  for (const b of document.querySelectorAll(".tracker-layer-opt")) b.classList.toggle("selected", b.dataset.layer === def.id);
+  try {
+    localStorage.setItem("realefb.trackerLayer", def.id);
+  } catch {
+    // Storage disabled - the choice just won't survive a reload.
+  }
+}
 
 async function renderFlightTracker() {
   // Full-bleed like EFL's own sheet (#detail-screen:has(.tracker-sheet) in style.css cancels
@@ -813,6 +1067,7 @@ async function renderFlightTracker() {
   trackerTrail = null;
   trackerFollow = true;
   trackerHasFix = false;
+  trackerBaseLayer = null;
 
   detailBody.innerHTML = `<div class="tracker-sheet"><p class="coming-soon">Loading flight plan...</p></div>`;
 
@@ -836,25 +1091,78 @@ async function renderFlightTracker() {
 
   trackerFlightPlan = flightPlan;
 
+  const airportName = (name) => (name && name !== "N/A" ? name : "");
+  const zulu = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    return `${String(d.getUTCHours()).padStart(2, "0")}${String(d.getUTCMinutes()).padStart(2, "0")}Z`;
+  };
+  const metaItems = [
+    ["OUT", zulu(flightPlan.scheduledOutUtc)],
+    ["IN", zulu(flightPlan.scheduledInUtc)],
+    ["CRZ", flightPlan.cruiseAltitudeFt ? `FL${String(Math.round(flightPlan.cruiseAltitudeFt / 100)).padStart(3, "0")}` : null],
+    ["DIST", flightPlan.routeDistanceNm ? `${Math.round(flightPlan.routeDistanceNm).toLocaleString()} NM` : null],
+  ].filter(([, value]) => value);
+
   detailBody.innerHTML = `
     <div class="tracker-sheet">
       <div id="tracker-map" class="tracker-map"></div>
-      <div class="tracker-header">
-        <div class="tracker-route">${escapeAttr(flightPlan.originIcao)} <span class="tracker-route-arrow">&#9656;</span> ${escapeAttr(flightPlan.destIcao)}</div>
-        <div class="tracker-callsign">${escapeAttr(flightPlan.callsign)} &middot; ${escapeAttr(flightPlan.aircraftIcao)}</div>
+      <div class="tracker-card">
+        <div class="tracker-card-top">
+          <span class="tracker-callsign">${escapeAttr(flightPlan.callsign)}</span>
+          <span class="tracker-chip">${escapeAttr(flightPlan.aircraftIcao)}</span>
+          <span class="tracker-status-pill" id="tracker-status-pill">
+            <span class="tracker-status-dot"></span><span id="tracker-status-text">No SimConnect</span>
+          </span>
+        </div>
+        <div class="tracker-leg">
+          <div class="tracker-apt">
+            <span class="tracker-apt-code">${escapeAttr(flightPlan.originIcao)}</span>
+            <span class="tracker-apt-name">${escapeAttr(airportName(flightPlan.originName))}</span>
+          </div>
+          <div class="tracker-progress" aria-hidden="true">
+            <div class="tracker-progress-track"><div class="tracker-progress-fill" id="tk-progress-fill"></div></div>
+            <span class="tracker-progress-plane" id="tk-progress-plane">${faIcon("plane")}</span>
+          </div>
+          <div class="tracker-apt tracker-apt-dest">
+            <span class="tracker-apt-code">${escapeAttr(flightPlan.destIcao)}</span>
+            <span class="tracker-apt-name">${escapeAttr(airportName(flightPlan.destName))}</span>
+          </div>
+        </div>
+        ${
+          metaItems.length
+            ? `<div class="tracker-card-meta">${metaItems
+                .map(([label, value]) => `<span class="tracker-meta-item"><span>${label}</span>${escapeAttr(value)}</span>`)
+                .join("")}</div>`
+            : ""
+        }
       </div>
-      <div class="tracker-status-pill" id="tracker-status-pill">
-        <span class="tracker-status-dot"></span><span id="tracker-status-text">No SimConnect</span>
+      <div class="tracker-hud is-waiting" id="tracker-hud">
+        <div class="tracker-hud-item"><span class="tracker-hud-label">GS</span><span class="tracker-hud-value" id="tk-gs">---</span><span class="tracker-hud-unit">KT</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-label">ALT</span><span class="tracker-hud-value" id="tk-alt">-----</span><span class="tracker-hud-unit">FT</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-label">HDG</span><span class="tracker-hud-value" id="tk-hdg">---&deg;</span><span class="tracker-hud-unit">TRUE</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-label">V/S</span><span class="tracker-hud-value" id="tk-vs">----</span><span class="tracker-hud-unit">FPM</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-label">TO DEST</span><span class="tracker-hud-value" id="tk-dist">---</span><span class="tracker-hud-unit">NM</span></div>
+        <div class="tracker-hud-item"><span class="tracker-hud-label">ETE</span><span class="tracker-hud-value" id="tk-ete">--:--</span><span class="tracker-hud-unit">H:MM</span></div>
+        <div class="tracker-hud-waiting">${faIcon("plane")}<span>Waiting for the simulator - start MSFS to see the live position</span></div>
       </div>
-      <div class="tracker-hud">
-        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-gs">---</span><span class="tracker-hud-label">GS KT</span></div>
-        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-alt">-----</span><span class="tracker-hud-label">ALT FT</span></div>
-        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-hdg">---&deg;</span><span class="tracker-hud-label">HDG</span></div>
-        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-vs">----</span><span class="tracker-hud-label">V/S FPM</span></div>
-        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-dist">--- NM</span><span class="tracker-hud-label">DEST DIST</span></div>
-        <div class="tracker-hud-item"><span class="tracker-hud-value" id="tk-ete">--:--</span><span class="tracker-hud-label">ETE</span></div>
+      <div class="tracker-controls">
+        <button type="button" id="tracker-layers-btn" class="tracker-ctrl-btn" title="Map type" aria-label="Map type" aria-expanded="false">${faIcon("layer-group")}</button>
+        <div class="tracker-ctrl-group">
+          <button type="button" id="tracker-zoom-in" class="tracker-ctrl-btn" title="Zoom in" aria-label="Zoom in">${faIcon("plus")}</button>
+          <button type="button" id="tracker-zoom-out" class="tracker-ctrl-btn" title="Zoom out" aria-label="Zoom out">${faIcon("minus")}</button>
+        </div>
+        <button type="button" id="tracker-center-btn" class="tracker-ctrl-btn tracker-center-btn active" title="Center on aircraft" aria-label="Center on aircraft">${faIcon("location-crosshairs")}</button>
       </div>
-      <button id="tracker-center-btn" class="tracker-center-btn active" title="Center on aircraft" aria-label="Center on aircraft">${ICONS.tracker}</button>
+      <div class="tracker-layer-menu hidden" id="tracker-layer-menu">
+        ${TRACKER_LAYERS.map(
+          (l) => `
+          <button type="button" class="tracker-layer-opt" data-layer="${l.id}">
+            <span class="tracker-layer-swatch" data-layer="${l.id}">${faIcon(l.icon)}</span>
+            <span>${l.label}</span>
+          </button>`
+        ).join("")}
+      </div>
     </div>
   `;
 
@@ -864,7 +1172,25 @@ async function renderFlightTracker() {
     if (trackerMap && trackerAircraftMarker) trackerMap.panTo(trackerAircraftMarker.getLatLng(), { animate: true });
   });
 
+  const layerMenu = document.getElementById("tracker-layer-menu");
+  const layersBtn = document.getElementById("tracker-layers-btn");
+  const setLayerMenuOpen = (open) => {
+    layerMenu.classList.toggle("hidden", !open);
+    layersBtn.classList.toggle("active", open);
+    layersBtn.setAttribute("aria-expanded", String(open));
+  };
+  layersBtn.addEventListener("click", () => setLayerMenuOpen(layerMenu.classList.contains("hidden")));
+  for (const opt of layerMenu.querySelectorAll(".tracker-layer-opt")) {
+    opt.addEventListener("click", () => {
+      setTrackerLayer(opt.dataset.layer);
+      setLayerMenuOpen(false);
+    });
+  }
+  document.getElementById("tracker-zoom-in").addEventListener("click", () => trackerMap?.zoomIn());
+  document.getElementById("tracker-zoom-out").addEventListener("click", () => trackerMap?.zoomOut());
+
   initTrackerMap(flightPlan);
+  trackerMap?.on("click", () => setLayerMenuOpen(false));
 
   trackerInterval = setInterval(updateTrackerPosition, 2000);
   updateTrackerPosition();
@@ -893,17 +1219,28 @@ function trackerAirportIcon() {
   });
 }
 
-// A simple top-down aircraft silhouette (nose at the top of its own local frame) wrapped in a
-// rotor div so the marker's own DOM element can be rotated in place afterwards (see
-// trackerSetAircraftHeading) instead of rebuilding the icon every 2s poll, which used to cause a
-// visible flicker.
+// Font Awesome's top-down "plane-up" (nose at the top of its own local frame, so a heading of
+// 0deg needs no offset) wrapped in a rotor div so the marker's own DOM element can be rotated in
+// place afterwards (see trackerSetAircraftHeading) instead of rebuilding the icon every 2s poll,
+// which used to cause a visible flicker.
 function trackerAircraftIcon() {
   return L.divIcon({
     className: "tracker-aircraft-icon",
-    html: '<div class="tracker-aircraft-rotor"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 1.5 L14 9.5 L22.5 14.5 L22.5 16.5 L14 13.5 L14 19.5 L18 22.5 L18 24 L12 22.3 L6 24 L6 22.5 L10 19.5 L10 13.5 L1.5 16.5 L1.5 14.5 L10 9.5 Z"/></svg></div>',
+    html: `<div class="tracker-aircraft-rotor">${faIcon("plane-up")}</div>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
+}
+
+// Slides the flight card's plane (and the fill behind it) along the origin -> destination bar.
+// Straight-line distance left against the straight-line leg, so it runs 0 at the gate to 1 at
+// the destination regardless of how the actual routing wanders in between.
+function setTrackerProgress(fraction) {
+  const pct = `${(Math.max(0, Math.min(1, fraction)) * 100).toFixed(1)}%`;
+  const fill = document.getElementById("tk-progress-fill");
+  const plane = document.getElementById("tk-progress-plane");
+  if (fill) fill.style.width = pct;
+  if (plane) plane.style.left = pct;
 }
 
 function trackerSetAircraftHeading(headingDeg) {
@@ -916,17 +1253,14 @@ function initTrackerMap(flightPlan) {
   const mapEl = document.getElementById("tracker-map");
   if (!mapEl || typeof L === "undefined") return;
 
-  trackerMap = L.map(mapEl, { zoomControl: true, attributionControl: true, worldCopyJump: true });
-
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    className: "tracker-tiles",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
-  }).addTo(trackerMap);
+  // Leaflet's own zoom control is replaced by the larger .tracker-controls buttons (see
+  // renderFlightTracker) - its 30px squares were a small target on a tablet.
+  trackerMap = L.map(mapEl, { zoomControl: false, attributionControl: true, worldCopyJump: true });
+  setTrackerLayer(savedTrackerLayerId());
 
   const routePts = trackerRouteLatLngs(flightPlan);
   if (routePts.length >= 2) {
-    L.polyline(routePts, { color: "#29d3ff", weight: 2.5, opacity: 0.85, dashArray: "1 8", lineCap: "round", interactive: false }).addTo(
+    L.polyline(routePts, { color: TRACKER_ROUTE_COLOR, weight: 3, opacity: 0.9, lineCap: "round", interactive: false }).addTo(
       trackerMap
     );
   }
@@ -945,11 +1279,11 @@ function initTrackerMap(flightPlan) {
   for (const fix of flightPlan.navlog || []) {
     if (fix.lat == null || fix.lon == null) continue;
     L.circleMarker([fix.lat, fix.lon], {
-      radius: 3,
-      color: "#29d3ff",
-      weight: 1.5,
-      fillColor: "#0b3a4a",
-      fillOpacity: 0.9,
+      radius: 3.5,
+      color: TRACKER_ROUTE_COLOR,
+      weight: 2,
+      fillColor: "#ffffff",
+      fillOpacity: 1,
       interactive: false,
     })
       .bindTooltip(fix.ident, { permanent: false, direction: "top", className: "tracker-wpt-label", offset: [0, -4] })
@@ -961,7 +1295,7 @@ function initTrackerMap(flightPlan) {
   // backend keeps recording for the whole flight regardless of whether Flight Tracker is even
   // open anywhere - so opening this tab mid-flight shows everything flown so far, not just
   // whatever this one device happens to see from here on.
-  trackerTrail = L.polyline([], { color: "#ffb347", weight: 2.5, opacity: 0.9, interactive: false }).addTo(trackerMap);
+  trackerTrail = L.polyline([], { color: "#ff9f1a", weight: 3, opacity: 0.95, interactive: false }).addTo(trackerMap);
   updateTrackerTrail();
 
   // The aircraft marker itself isn't added yet - it only appears once SimConnect actually gives
@@ -1029,14 +1363,17 @@ async function updateTrackerPosition() {
     // Treated the same as "not connected" below.
   }
 
+  const live = !!(connected && state);
   const pill = document.getElementById("tracker-status-pill");
   const pillText = document.getElementById("tracker-status-text");
   if (pill && pillText) {
-    const live = !!(connected && state);
     pill.classList.toggle("tracker-status-live", live);
     pillText.textContent = live ? "Live" : "No SimConnect";
   }
-  if (!connected || !state) return;
+  // No live position yet - the instrument strip shows a waiting message rather than a row of
+  // dashes that just reads as broken.
+  document.getElementById("tracker-hud")?.classList.toggle("is-waiting", !live);
+  if (!live) return;
 
   const { latitude, longitude, headingDegreesTrue, groundSpeedKts, altitudeFt, verticalSpeedFpm } = state;
 
@@ -1053,7 +1390,11 @@ async function updateTrackerPosition() {
   const eteEl = document.getElementById("tk-ete");
   if (trackerFlightPlan && trackerFlightPlan.destLat != null && trackerFlightPlan.destLon != null) {
     const distNm = trackerHaversineNm(latitude, longitude, trackerFlightPlan.destLat, trackerFlightPlan.destLon);
-    if (distEl) distEl.textContent = `${Math.round(distNm)} NM`;
+    if (distEl) distEl.textContent = Math.round(distNm).toLocaleString();
+    if (trackerFlightPlan.originLat != null && trackerFlightPlan.originLon != null) {
+      const legNm = trackerHaversineNm(trackerFlightPlan.originLat, trackerFlightPlan.originLon, trackerFlightPlan.destLat, trackerFlightPlan.destLon);
+      if (legNm > 0) setTrackerProgress(1 - distNm / legNm);
+    }
     if (eteEl) {
       if (groundSpeedKts > 20) {
         const eteMin = (distNm / groundSpeedKts) * 60;
@@ -1141,15 +1482,15 @@ function renderDocumentPages(doc) {
   detailTitle.style.display = "none";
 
   detailBody.innerHTML = `
-    <button class="doc-back-btn" id="doc-back-btn">&#8249; Return</button>
+    <button class="doc-back-btn" id="doc-back-btn">${faIcon("chevron-left")} Return</button>
     <div class="wx-tab">
       <div class="wx-page" id="doc-page"></div>
       <div class="wx-pager">
-        <button type="button" id="doc-prev" class="wx-pager-btn" aria-label="Previous page">&#10094;</button>
+        <button type="button" id="doc-prev" class="wx-pager-btn" aria-label="Previous page">${faIcon("chevron-left")}</button>
         <span class="wx-pager-label">
           Page <input type="number" id="doc-page-input" class="doc-page-input" min="1" max="${doc.pageCount}" /> of ${doc.pageCount}
         </span>
-        <button type="button" id="doc-next" class="wx-pager-btn" aria-label="Next page">&#10095;</button>
+        <button type="button" id="doc-next" class="wx-pager-btn" aria-label="Next page">${faIcon("chevron-right")}</button>
       </div>
     </div>
   `;
@@ -1455,9 +1796,9 @@ function buildLoadsheetCardHtml(kind, ednoLabel, ls) {
 
   const statusHtml =
     ls.status === "accepted"
-      ? `<div class="ls-status ls-status-accepted">&#10003; ACCEPTED ${acarsTimestampFor(new Date(ls.decidedUtc))}</div>`
+      ? `<div class="ls-status ls-status-accepted">${faIcon("circle-check")} ACCEPTED ${acarsTimestampFor(new Date(ls.decidedUtc))}</div>`
       : ls.status === "denied"
-        ? `<div class="ls-status ls-status-denied">&#10007; DENIED ${acarsTimestampFor(new Date(ls.decidedUtc))}</div>`
+        ? `<div class="ls-status ls-status-denied">${faIcon("circle-xmark")} DENIED ${acarsTimestampFor(new Date(ls.decidedUtc))}</div>`
         : "";
 
   const actionsHtml = !isFinal
@@ -1860,6 +2201,29 @@ async function importFlightPlan(onSuccess) {
   }
 }
 
+// EFL light/dark theme (see the "EFL dark mode" section of style.css). Per device, like the
+// wallpaper - the right choice depends on the lighting where that particular screen is.
+const EFL_THEME_KEY = "realefb.eflTheme";
+
+function savedEflTheme() {
+  try {
+    return localStorage.getItem(EFL_THEME_KEY) === "dark" ? "dark" : "light";
+  } catch {
+    return "light";
+  }
+}
+
+function applyEflTheme(theme) {
+  const dark = theme === "dark";
+  document.body.dataset.eflTheme = dark ? "dark" : "light";
+  const btn = document.getElementById("efl-theme-btn");
+  if (btn) {
+    btn.innerHTML = faIcon(dark ? "sun" : "moon");
+    btn.title = dark ? "Light mode" : "Dark mode";
+    btn.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+  }
+}
+
 function renderEflLoaded(fp) {
   const outDate = fp.scheduledOutUtc ? new Date(fp.scheduledOutUtc) : null;
   const inDate = fp.scheduledInUtc ? new Date(fp.scheduledInUtc) : null;
@@ -1872,14 +2236,14 @@ function renderEflLoaded(fp) {
   // text link it briefly replaced turned out harder to hit.
   const tabBtnHtml = (t) => `
       <button class="efl-tab-btn ${t.id === "flightlog" ? "selected" : ""}" data-tab="${t.id}">
-        <svg class="efl-tab-icon" viewBox="0 0 24 24">${t.icon}</svg>
+        <i class="efl-tab-icon fa-solid fa-${t.icon}" aria-hidden="true"></i>
         <span>${t.label}</span>
       </button>`;
   const leftTabs = EFL_TABS.slice(0, 4);
   const rightTabs = EFL_TABS.slice(4);
   const tabButtons = `
       ${leftTabs.map(tabBtnHtml).join("")}
-      <button class="efl-home-btn" id="efl-home-btn" aria-label="Home"><span class="efl-home-ring"></span></button>
+      <button class="efl-home-btn" id="efl-home-btn" aria-label="Home">${faIcon("house")}</button>
       ${rightTabs.map(tabBtnHtml).join("")}
     `;
 
@@ -1889,6 +2253,7 @@ function renderEflLoaded(fp) {
         <span class="efl-callsign">${fp.callsign || "N/A"}</span>
         <span class="efl-route">${fp.originIcao} ${fp.destIcao}</span>
         <span class="efl-meta">${fmtDate(outDate)} ${fmtTime(outDate)} ${fmtTime(inDate)} ${fp.aircraftIcao}</span>
+        <button type="button" class="efl-theme-btn" id="efl-theme-btn"></button>
       </div>
       <div class="efl-tab-content" id="efl-tab-content"></div>
     </div>
@@ -1903,6 +2268,17 @@ function renderEflLoaded(fp) {
   // right on top of it) stays hidden until the user leaves via either button.
   homeButton.classList.add("hidden");
   document.getElementById("efl-home-btn").addEventListener("click", goHome);
+
+  applyEflTheme(savedEflTheme());
+  document.getElementById("efl-theme-btn").addEventListener("click", () => {
+    const next = document.body.dataset.eflTheme === "dark" ? "light" : "dark";
+    try {
+      localStorage.setItem(EFL_THEME_KEY, next);
+    } catch {
+      // Storage disabled - the choice just won't survive a reload.
+    }
+    applyEflTheme(next);
+  });
 
   const content = document.getElementById("efl-tab-content");
 
@@ -2005,7 +2381,7 @@ async function renderPdfTab(content, fp) {
   }
 
   const pdfLink = fp.pdfUrl
-    ? `<a class="efl-pdf-original-link" href="/api/simbrief/pdf" target="_blank" rel="noopener">Open original PDF &#8599;</a>`
+    ? `<a class="efl-pdf-original-link" href="/api/simbrief/pdf" target="_blank" rel="noopener">Open original PDF ${faIcon("arrow-up-right-from-square")}</a>`
     : "";
 
   content.innerHTML = `
@@ -2152,7 +2528,7 @@ function openDelayCodePicker(currentValue, onSelect) {
     <div class="delay-picker-modal">
       <div class="delay-picker-header">
         <h3>Delay Reason</h3>
-        <button type="button" class="delay-picker-close" aria-label="Close">&times;</button>
+        <button type="button" class="delay-picker-close" aria-label="Close">${faIcon("xmark")}</button>
       </div>
       <input type="text" class="delay-picker-search" placeholder="Search delay codes..." />
       <div class="delay-picker-list">
@@ -3043,7 +3419,7 @@ function buildWaypointsTabHtml(cards, actuals) {
       <span class="wp-diff" id="wp-${id}-${field}-diff"></span>
       <span class="wp-input-clear-row">
         <input type="number" id="wp-${id}-${field}" data-planned="${plannedValue === null || plannedValue === undefined ? "" : plannedValue}" value="${actualValue === null || actualValue === undefined ? "" : Math.round(actualValue)}" ${readonly ? "readonly" : ""} />
-        ${readonly ? "" : `<button type="button" class="wp-clear-btn" data-clear="wp-${id}-${field}">&times;</button>`}
+        ${readonly ? "" : `<button type="button" class="wp-clear-btn" data-clear="wp-${id}-${field}" aria-label="Clear">${faIcon("xmark")}</button>`}
       </span>
     </span>`;
 
@@ -3059,7 +3435,7 @@ function buildWaypointsTabHtml(cards, actuals) {
     return `
       <div class="wp-card ${c.defaultOpen ? "" : "wp-card-collapsed"}" id="wp-${c.id}">
         <div class="wp-card-title" id="wp-${c.id}-header">
-          <span class="wp-card-chevron">&#9662;</span>
+          <span class="wp-card-chevron">${faIcon("chevron-down")}</span>
           <span>${escapeAttr(c.title)}</span>
           <span class="wp-card-title-right">
             <span class="wp-card-title-time">${escapeAttr(plannedTimeStr)}</span>
@@ -3087,7 +3463,7 @@ function buildWaypointsTabHtml(cards, actuals) {
             <span class="wp-diff" id="wp-${c.id}-time-diff"></span>
             <span class="wp-input-clear-row">
               <input type="text" id="wp-${c.id}-time" data-planned="${escapeAttr(plannedTimeStr)}" placeholder="00:00" value="${escapeAttr(actual.time || "")}" />
-              <button type="button" class="wp-clear-btn" data-clear="wp-${c.id}-time">&times;</button>
+              <button type="button" class="wp-clear-btn" data-clear="wp-${c.id}-time" aria-label="Clear">${faIcon("xmark")}</button>
             </span>
           </span>
           ${numericCell(c.id, "fuel", c.plannedFuel, actualFuel, false)}
@@ -3138,8 +3514,8 @@ function chartWrapHtml(src, alt) {
   return `
     <div class="wx-chart-wrap">
       <div class="wx-zoom-controls">
-        <button type="button" class="wx-zoom-btn wx-zoom-out" aria-label="Zoom out" disabled>&minus;</button>
-        <button type="button" class="wx-zoom-btn wx-zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" class="wx-zoom-btn wx-zoom-out" aria-label="Zoom out" disabled>${faIcon("minus")}</button>
+        <button type="button" class="wx-zoom-btn wx-zoom-in" aria-label="Zoom in">${faIcon("plus")}</button>
       </div>
       <img class="wx-chart-img" src="${src}" alt="${escapeAttr(alt)}" draggable="false" />
     </div>`;
@@ -3254,9 +3630,9 @@ function renderWeatherTab(content, fp) {
     <div class="wx-tab">
       <div class="wx-page" id="wx-page"></div>
       <div class="wx-pager">
-        <button type="button" id="wx-prev" class="wx-pager-btn" aria-label="Previous page">&#10094;</button>
+        <button type="button" id="wx-prev" class="wx-pager-btn" aria-label="Previous page">${faIcon("chevron-left")}</button>
         <span class="wx-pager-label" id="wx-pager-label"></span>
-        <button type="button" id="wx-next" class="wx-pager-btn" aria-label="Next page">&#10095;</button>
+        <button type="button" id="wx-next" class="wx-pager-btn" aria-label="Next page">${faIcon("chevron-right")}</button>
       </div>
     </div>
   `;
@@ -3454,7 +3830,7 @@ function renderNotamsTab(content, fp) {
         return `
       <div class="notam-group notam-group-collapsed" id="notam-group-${i}">
         <div class="notam-group-title" id="notam-group-${i}-header">
-          <span class="notam-group-chevron">&#9662;</span>
+          <span class="notam-group-chevron">${faIcon("chevron-down")}</span>
           <span>${escapeAttr(icao)} - ${escapeAttr(groups[icao].name)}</span>
           ${label ? `<span class="notam-group-leg-badge">${label}</span>` : ""}
           <span class="notam-group-count">${groups[icao].items.length}</span>
@@ -3919,7 +4295,7 @@ function settingsSectionHtml(id, title, bodyHtml) {
   return `
     <div class="settings-section settings-section-collapsed" id="settings-section-${id}">
       <div class="settings-section-header" data-section="${id}">
-        <span class="settings-section-chevron">&#9662;</span>
+        <span class="settings-section-chevron">${faIcon("chevron-down")}</span>
         <span class="settings-section-title">${escapeAttr(title)}</span>
       </div>
       <div class="settings-section-body">${bodyHtml}</div>
@@ -3970,15 +4346,6 @@ async function renderSettings() {
         .join("")
     : `<p class="settings-hint">No network adapters detected.</p>`;
 
-  const currentWallpaper = document.body.dataset.wallpaper || "sky";
-  const wallpaperSwatches = WALLPAPERS.map(
-    (w) => `
-      <button class="settings-swatch ${w.id === currentWallpaper ? "selected" : ""}"
-              data-wallpaper="${w.id}" aria-label="${w.label}">
-        <span class="settings-swatch-preview" data-preview="${w.id}"></span>
-        <span class="settings-swatch-label">${w.label}</span>
-      </button>`
-  ).join("");
 
   const webServerBody = `
     <label class="settings-label" for="settings-port">Server port</label>
@@ -3991,7 +4358,7 @@ async function renderSettings() {
     ${ipRows}
   `;
 
-  const backgroundBody = `<div class="settings-swatch-grid">${wallpaperSwatches}</div>`;
+  const backgroundBody = wallpaperSectionBodyHtml();
 
   const simBriefBody = `
     <label class="settings-label" for="settings-simbrief-id">SimBrief username or pilot ID</label>
@@ -4052,7 +4419,7 @@ async function renderSettings() {
 
   const settingsTabs = {
     realefb: `
-      ${settingsSectionHtml("background", "Background", backgroundBody)}
+      ${settingsSectionHtml("background", "Wallpaper", backgroundBody)}
       ${settingsSectionHtml("webserver", "Web Server", webServerBody)}
       ${settingsSectionHtml("simbrief", "SimBrief", simBriefBody)}`,
     apps: `
@@ -4102,20 +4469,7 @@ async function renderSettings() {
     });
   }
 
-  for (const btn of detailBody.querySelectorAll(".settings-swatch")) {
-    btn.addEventListener("click", () => {
-      const id = btn.dataset.wallpaper;
-      document.body.dataset.wallpaper = id;
-      try {
-        localStorage.setItem("realefb.wallpaper", id);
-      } catch {
-        // Private browsing / storage disabled - the choice just won't survive a reload.
-      }
-      for (const s of detailBody.querySelectorAll(".settings-swatch")) {
-        s.classList.toggle("selected", s === btn);
-      }
-    });
-  }
+  wireWallpaperSection();
 }
 
 async function saveWebServer() {
@@ -4183,16 +4537,20 @@ async function saveApps() {
 // lookups (data-index into webAppsState) since that's simpler than re-finding an entry by id
 // every time, and the list is always rebuilt from webAppsState right after any change anyway.
 function webAppRowHtml(w, idx) {
-  const iconHtml = w.icon ? `<img src="${escapeAttr(w.icon)}" alt="" />` : ICONS.webapp;
+  const [from, to] = webAppGradient(w.name);
+  const iconHtml = w.icon
+    ? `<img src="${escapeAttr(w.icon)}" alt="" />`
+    : `<span class="webapp-row-monogram">${escapeAttr(webAppMonogram(w.name))}</span>`;
+  const iconStyle = w.icon ? "" : ` style="background: linear-gradient(155deg, ${from}, ${to})"`;
   return `
     <div class="webapp-row">
-      <span class="webapp-row-icon">${iconHtml}</span>
+      <span class="webapp-row-icon"${iconStyle}>${iconHtml}</span>
       <span class="webapp-row-info">
         <span class="webapp-row-name">${escapeAttr(w.name)}</span>
         <span class="webapp-row-url">${escapeAttr(w.url)}</span>
       </span>
-      <button type="button" class="webapp-row-btn webapp-row-edit" data-index="${idx}" aria-label="Edit">&#9998;</button>
-      <button type="button" class="webapp-row-btn webapp-row-delete" data-index="${idx}" aria-label="Delete">&#128465;</button>
+      <button type="button" class="webapp-row-btn webapp-row-edit" data-index="${idx}" aria-label="Edit">${faIcon("pen")}</button>
+      <button type="button" class="webapp-row-btn webapp-row-delete" data-index="${idx}" aria-label="Delete">${faIcon("trash-can")}</button>
     </div>`;
 }
 
@@ -4488,17 +4846,6 @@ async function checkFlightState() {
   dateEl.textContent = `${now.getUTCDate()} ${MONTH_NAMES[now.getUTCMonth()]} ${now.getUTCFullYear()}`;
 }
 
-const WIFI_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 8.5a16 16 0 0 1 20 0M5.5 12.5a11 11 0 0 1 13 0M9 16.5a6 6 0 0 1 6 0"/><circle cx="12" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg>';
-
-function batterySvg(pct) {
-  const fillWidth = Math.max(0, Math.min(1, pct / 100)) * 16;
-  return `<svg viewBox="0 0 26 17" fill="none">
-    <rect x="1" y="1" width="21" height="15" rx="3.5" stroke="currentColor" stroke-width="1.4"/>
-    <rect x="23.2" y="6" width="2.2" height="5" rx="1" fill="currentColor"/>
-    <rect x="3.2" y="3.2" width="${fillWidth}" height="10.6" rx="1.8" fill="currentColor"/>
-  </svg>`;
-}
-
 // Pings the server's own /api/status endpoint so the status-bar indicator reflects
 // reality (the page loading at all doesn't guarantee the backend is still responsive)
 // rather than just always showing connected because the page happened to load once.
@@ -4515,11 +4862,9 @@ async function checkServerStatus() {
   connectionIcon.classList.add("offline");
 }
 
-const SIGNAL_SVG = '<svg viewBox="0 0 20 16" fill="currentColor" stroke="none"><rect x="0" y="11" width="3.4" height="5" rx="1"/><rect x="5.5" y="8" width="3.4" height="8" rx="1"/><rect x="11" y="4.5" width="3.4" height="11.5" rx="1"/><rect x="16.5" y="0" width="3.4" height="16" rx="1"/></svg>';
-
-document.getElementById("wifi-icon").innerHTML = WIFI_SVG;
-document.getElementById("battery-icon").innerHTML = batterySvg(100);
-connectionIcon.innerHTML = SIGNAL_SVG;
+document.getElementById("wifi-icon").innerHTML = faIcon("wifi");
+document.getElementById("battery-icon").innerHTML = faIcon("battery-full");
+connectionIcon.innerHTML = faIcon("signal");
 
 homeButton.addEventListener("click", goHome);
 
@@ -4568,6 +4913,8 @@ new MutationObserver((mutations) => {
   }
 }).observe(document.body, { childList: true, subtree: true });
 
+applyEflTheme(savedEflTheme());
+syncTitleBar();
 startApp();
 checkFlightState();
 setInterval(checkFlightState, 5000);
