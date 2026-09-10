@@ -39,6 +39,10 @@ RealEFB runs as a Windows desktop app and serves its own interface over your LAN
 2. Run `RealEFB.exe`. The first launch walks you through a short setup wizard — your SimBrief ID, the local web server's port, and an optional SayIntentions.AI integration.
 3. To use RealEFB on a tablet, open Settings on the desktop app to find the PC's LAN IP address, then browse to `http://<that IP>:<port>` from the tablet (default port `5150`).
 
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to build, run, and submit changes.
+
 ## License
 
-All rights reserved — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Bundled third-party components (Leaflet, the SimConnect redistributables) keep their own licenses; the LICENSE file has the details.
