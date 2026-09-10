@@ -8,6 +8,13 @@
   --dock-border: rgba(255, 255, 255, 0.12);
   --statusbar-icon: rgba(255, 255, 255, 0.92);
 
+  /* Type - see vendor/google-fonts/fonts.css. Inter everywhere, B612 Mono (the typeface Airbus
+     commissioned for its own cockpit displays) for the verbatim system-text blocks - METAR/TAF,
+     the ATC flight plan, step climbs - that read like a printout off the aircraft itself. Each
+     keeps a system fallback behind it for anything outside the vendored latin/latin-ext subsets. */
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
+  --font-mono: "B612 Mono", Consolas, "SF Mono", Menlo, monospace;
+
   /* EFL palette, matched to the reference EFB screenshot the log view is modelled on: a flat
      white document, one strong blue for every label/heading, hairline gray rules instead of
      card borders, and a pale periwinkle banner for the flight strip. Kept as variables so the
@@ -36,17 +43,36 @@ html, body {
 
 body {
   color: var(--text);
-  /* Plain Helvetica/Arial/Roboto instead of leading with SF Pro Display - the reference EFB
-     screenshots read as a generic cross-platform sans, not Apple's distinctly rounded system
-     font, which was giving the whole app a more "iOS app" flavor than a realistic one. */
-  font-family: "Helvetica Neue", Helvetica, Arial, Roboto, "Segoe UI", sans-serif;
+  /* Inter rather than SF Pro Display - the reference EFB screenshots read as a generic
+     cross-platform sans, not Apple's distinctly rounded system font, which was giving the whole
+     app a more "iOS app" flavor than a realistic one. Inter is that same neutral grotesque, just
+     one that renders identically on the desktop's WebView2 and a tablet's browser instead of
+     falling through to whichever of Helvetica/Arial/Roboto that device happens to have. */
+  font-family: var(--font-sans);
+  /* Nearly every figure in an EFB gets compared against another one (planned vs actual, one
+     fix's fuel against the next) - fixed-width digits keep those columns lined up instead of
+     shifting as the numbers change. */
+  font-variant-numeric: tabular-nums;
   position: relative;
+}
+
+/* Form controls don't inherit font-family (or font-variant-numeric) on their own - the browser's
+   own font shorthand for them resets both, so without this every button, input and select would
+   fall back to the OS UI font instead of Inter. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-variant-numeric: inherit;
 }
 
 /* ============================== Wallpaper ============================== */
 /* Layered CSS gradients stand in for photo wallpapers, so the app ships with no
    external image asset to fetch or license. A faint noise layer on top breaks up
-   the otherwise perfectly smooth gradient banding that reads as "flat/cartoony". */
+   the otherwise perfectly smooth gradient banding that reads as "flat/cartoony". The one
+   exception is "photo", the user's own picture (see applyWallpaper in app.js). Every rule below
+   also paints .wallpaper-thumb, so Settings previews the real thing rather than an approximation. */
 
 #noise {
   position: fixed;
@@ -66,7 +92,8 @@ body {
   transition: background 0.4s ease;
 }
 
-#wallpaper::after {
+#wallpaper::after,
+.wallpaper-thumb::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -76,44 +103,108 @@ body {
 /* --- Sky (default) --- */
 /* A flat, muted slate-blue rather than a bright gradient sky photo - reads as a plain tablet
    background instead of a phone lock-screen wallpaper. */
-body[data-wallpaper="sky"] #wallpaper {
+body[data-wallpaper="sky"] #wallpaper,
+.wallpaper-thumb[data-wallpaper="sky"] {
   background: linear-gradient(180deg, #5c7086 0%, #46586c 45%, #2f3d4a 100%);
 }
 
 /* --- Sunset --- */
-body[data-wallpaper="sunset"] #wallpaper {
+body[data-wallpaper="sunset"] #wallpaper,
+.wallpaper-thumb[data-wallpaper="sunset"] {
   background: linear-gradient(180deg, #4a4356 0%, #5c4b4c 35%, #6e5548 65%, #7a6049 100%);
 }
 
-body[data-wallpaper="sunset"] #wallpaper::after {
+body[data-wallpaper="sunset"] #wallpaper::after,
+.wallpaper-thumb[data-wallpaper="sunset"]::after {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.06) 0%, transparent 30%);
 }
 
 /* --- Dusk --- */
-body[data-wallpaper="dusk"] #wallpaper {
+body[data-wallpaper="dusk"] #wallpaper,
+.wallpaper-thumb[data-wallpaper="dusk"] {
   background: linear-gradient(180deg, #23263a 0%, #2b2c40 35%, #322f3f 65%, #392f38 100%);
 }
 
 /* --- Night --- */
-body[data-wallpaper="night"] #wallpaper {
+body[data-wallpaper="night"] #wallpaper,
+.wallpaper-thumb[data-wallpaper="night"] {
   background:
     radial-gradient(60% 40% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 70%),
     linear-gradient(180deg, #0a0d14 0%, #10151f 50%, #161b26 100%);
 }
 
-body[data-wallpaper="night"] #wallpaper::after {
+body[data-wallpaper="night"] #wallpaper::after,
+.wallpaper-thumb[data-wallpaper="night"]::after {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
 }
 
 /* --- Graphite --- */
-body[data-wallpaper="graphite"] #wallpaper {
+body[data-wallpaper="graphite"] #wallpaper,
+.wallpaper-thumb[data-wallpaper="graphite"] {
   background:
     radial-gradient(90% 60% at 50% 0%, rgba(255, 255, 255, 0.08), transparent 70%),
     linear-gradient(165deg, #4b5461 0%, #333a44 55%, #21262e 100%);
 }
 
-body[data-wallpaper="graphite"] #wallpaper::after {
+body[data-wallpaper="graphite"] #wallpaper::after,
+.wallpaper-thumb[data-wallpaper="graphite"]::after {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 35%);
+}
+
+/* --- Horizon --- */
+/* Dawn from altitude - a hard horizon line with the sun just under it, the view past the nose on
+   an early departure. The ground is its own top layer, so the sun's glow only lights the sky. */
+body[data-wallpaper="horizon"] #wallpaper,
+.wallpaper-thumb[data-wallpaper="horizon"] {
+  background:
+    linear-gradient(180deg, transparent 61%, #1b2029 61%, #11151c 100%),
+    radial-gradient(42% 14% at 50% 61%, rgba(255, 190, 120, 0.7), transparent 70%),
+    linear-gradient(180deg, #0e2340 0%, #25497a 32%, #7d6f8c 52%, #e0a06a 61%);
+}
+
+/* --- Clouds --- */
+/* A cloud deck from the same SVG noise filter #noise uses, at a far lower frequency and mapped to
+   white - still no image file. */
+body[data-wallpaper="clouds"] #wallpaper,
+.wallpaper-thumb[data-wallpaper="clouds"] {
+  /* The flat dark wash on top keeps white labels readable over the brightest cloud. */
+  background:
+    linear-gradient(rgba(8, 24, 44, 0.22), rgba(8, 24, 44, 0.22)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1200' viewBox='0 0 1920 1200' preserveAspectRatio='xMidYMid slice'%3E%3Cfilter id='c' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0018 0.0042' numOctaves='5' seed='11'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.3 0 0 0 -0.95'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23c%29'/%3E%3C/svg%3E") center / cover no-repeat,
+    linear-gradient(180deg, #2c5a88 0%, #4a7fb0 55%, #86acd0 100%);
+}
+
+/* --- Stratosphere --- */
+/* Blue-black overhead, fading to the thin glow of the atmosphere along the bottom edge. */
+body[data-wallpaper="stratosphere"] #wallpaper,
+.wallpaper-thumb[data-wallpaper="stratosphere"] {
+  background:
+    radial-gradient(130% 55% at 50% 120%, rgba(110, 180, 255, 0.55), rgba(40, 90, 200, 0.22) 45%, transparent 72%),
+    linear-gradient(180deg, #03050b 0%, #070d1c 55%, #0d1a36 100%);
+}
+
+/* --- Your photo --- */
+body[data-wallpaper="photo"] #wallpaper,
+.wallpaper-thumb[data-wallpaper="photo"] {
+  background: #111 var(--wallpaper-photo, none) center / cover no-repeat;
+}
+
+/* A photo can be any brightness - a scrim, heavier top and bottom, keeps the white status bar and
+   tile labels readable over a bright sky or snowfield while the picture still reads as itself. */
+body[data-wallpaper="photo"] #wallpaper::after {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.28) 25%, rgba(0, 0, 0, 0.28) 70%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* The grain overlay is there for flat gradients - on a real photo it only adds noise. */
+body[data-wallpaper="photo"] #noise {
+  display: none;
+}
+
+/* The two bright wallpapers can put a white label on white - a heavier shadow (every label and
+   the status bar take theirs from --text-shadow) keeps text readable over them. */
+body[data-wallpaper="photo"],
+body[data-wallpaper="clouds"] {
+  --text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 0, 0, 0.35);
 }
 
 /* ============================== Status bar ============================== */
@@ -158,11 +249,8 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   color: var(--statusbar-icon);
 }
 
-.status-icon svg {
-  width: 17px;
-  height: 17px;
-  display: block;
-  filter: drop-shadow(var(--text-shadow));
+.status-icon i {
+  font-size: 15px;
 }
 
 #battery-group {
@@ -171,9 +259,8 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   gap: 4px;
 }
 
-#battery-icon svg {
-  width: 24px;
-  height: 17px;
+#battery-icon i {
+  font-size: 17px;
 }
 
 #connection-icon.offline {
@@ -326,14 +413,9 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
-.init-icon svg {
-  width: 28px;
-  height: 28px;
-  stroke: #fff;
-  fill: none;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.init-icon i {
+  font-size: 24px;
+  color: #fff;
 }
 
 .init-title {
@@ -404,9 +486,9 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 
 .tile-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 26px 18px;
-  max-width: 760px;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 30px 16px;
+  max-width: 880px;
   margin: 0 auto;
 }
 
@@ -418,38 +500,57 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   cursor: pointer;
 }
 
-/* Flat, single-tone icon tiles rather than glossy skeuomorphic app icons - a subtle border
-   and a soft shadow instead of the gradient fill + inset highlight/shine that read as a
-   phone-home-screen app icon rather than enterprise tablet software. */
+/* Vivid two-tone app icons - each app's own gradient (APPS in app.js), a soft sheen across the
+   top and a real drop shadow, so the grid reads as distinct, recognisable apps at a glance
+   instead of a row of near-identical dark squares. */
 .tile-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
+  width: 68px;
+  height: 68px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background: var(--icon-dark, #444);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  transition: transform 0.1s ease;
+  background: linear-gradient(155deg, var(--icon-light, #666), var(--icon-dark, #333));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.28),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
-.tile-icon svg {
-  width: 30px;
-  height: 30px;
-  stroke: rgba(255, 255, 255, 0.92);
-  fill: none;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+/* The sheen - light fading out halfway down the face. */
+.tile-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 55%);
+  pointer-events: none;
+}
+
+.tile-icon i {
+  font-size: 28px;
+  color: #fff;
   position: relative;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+}
+
+/* A Website App with no uploaded icon - its initials, on a gradient picked from its name (see
+   webAppToTile), so three web apps no longer look like three identical globes. */
+.tile-monogram {
+  position: relative;
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
 }
 
 /* Full square product badges (SimPrinter, SimCallouts, SimBrief) - each one already has its own
    background baked in, so it fills the whole tile face (clipped by .tile-icon's overflow:hidden)
-   rather than sitting inset on a colored ground like the drawn stroke icons. */
+   rather than sitting inset on a colored ground like the Font Awesome glyphs. */
 .tile-icon img.tile-logo {
   width: 100%;
   height: 100%;
@@ -461,16 +562,34 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   transform: scale(0.9);
 }
 
+/* Desktop only (a real mouse pointer) - a tablet has no hover, and a sticky :hover left behind
+   after a tap would leave whichever tile was last touched looking raised. :active is repeated
+   inside so a press still wins over the hover lift. */
+@media (hover: hover) {
+  .tile:hover .tile-icon {
+    transform: translateY(-3px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -3px 8px rgba(0, 0, 0, 0.18),
+      0 14px 26px rgba(0, 0, 0, 0.32),
+      0 3px 6px rgba(0, 0, 0, 0.22);
+  }
+
+  .tile:active .tile-icon {
+    transform: scale(0.9);
+  }
+}
+
 /* Wraps up to 2 lines instead of truncating to one - a single-line ellipsis was cutting
    longer labels like "SimBrief Performance" down to unreadable fragments ("SimBrief Per...").
    -webkit-line-clamp is fine to rely on unprefixed-CSS-standard alternatives for here - both
    places this app runs (WebView2 and Safari/iPad) are Blink/WebKit, which both support it. */
 .tile-label {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
   text-align: center;
   text-shadow: var(--text-shadow);
-  max-width: 84px;
+  max-width: 100px;
   line-height: 1.25;
   overflow: hidden;
   display: -webkit-box;
@@ -512,7 +631,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 
 .settings-wizard-btn {
   display: block;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(15, 23, 42, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.24);
   color: #fff;
   text-shadow: var(--text-shadow);
@@ -541,7 +660,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 
 .settings-tab-btn {
   flex: 1;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
   padding: 10px 12px;
@@ -576,10 +695,14 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 .settings-section {
   max-width: 460px;
   margin: 0 auto 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  /* Dark glass rather than a white tint - stays readable over the bright wallpapers (Clouds, a
+     photo) as well as the dark ones. */
+  background: rgba(15, 23, 42, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
   overflow: hidden;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .settings-section-header {
@@ -772,14 +895,8 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   justify-content: center;
 }
 
-.settings-password-eye svg {
-  width: 20px;
-  height: 20px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.settings-password-eye i {
+  font-size: 16px;
 }
 
 .settings-password-eye.settings-password-eye-active {
@@ -817,7 +934,6 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 .settings-ip-url {
   font-size: 14px;
   font-weight: 600;
-  font-family: "SF Mono", Consolas, monospace;
 }
 
 /* Settings > Website Apps' list - same translucent-card-on-wallpaper language as
@@ -858,14 +974,9 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   object-fit: cover;
 }
 
-.webapp-row-icon svg {
-  width: 20px;
-  height: 20px;
-  stroke: rgba(255, 255, 255, 0.85);
-  fill: none;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.webapp-row-icon i {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .webapp-row-info {
@@ -902,7 +1013,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   border: none;
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
-  font-size: 15px;
+  font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -936,14 +1047,8 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   cursor: pointer;
 }
 
-.webapp-quickadd-btn svg {
-  width: 16px;
-  height: 16px;
-  stroke: var(--efl-blue);
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.webapp-quickadd-btn i {
+  font-size: 13px;
 }
 
 .webapp-quickadd-btn:active {
@@ -1066,14 +1171,9 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   object-fit: cover;
 }
 
-.webapp-editor-icon-preview svg {
-  width: 26px;
-  height: 26px;
-  stroke: rgba(255, 255, 255, 0.9);
-  fill: none;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.webapp-editor-icon-preview i {
+  font-size: 21px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* A styled "button" that's actually a label wrapping a fully transparent, absolutely
@@ -1121,109 +1221,143 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   color: #6b7280;
 }
 
-.settings-swatch-grid {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+.wallpaper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 14px 12px;
 }
 
-.settings-swatch {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
+.wallpaper-option {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
 }
 
-/* A transparent border here used to mean an unselected swatch had no visible edge at all
-   against the app's own similarly-dark background - the drop shadow below is soft/offset, not
-   a real frame, so nothing crisply marked where the little square actually started and ended.
-   That's what made the gradient read as "wrong" until a swatch was tapped: only the selected
-   state's white border gave the eye a clear boundary to judge the color transition against. A
-   faint border now, all the time, gives every swatch that same reference frame regardless of
-   selection - the gradient itself was never actually reversed. */
-.settings-swatch-preview {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  transition: transform 0.1s ease, border-color 0.15s ease;
+.wallpaper-thumb {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  transition: border-color 0.15s ease, transform 0.1s ease;
 }
 
-.settings-swatch.selected .settings-swatch-preview {
+/* The selected tick - hidden until selected, lifted above the thumbnail's own ::after layer. */
+.wallpaper-thumb > i {
+  position: relative;
+  z-index: 1;
+  margin: 6px;
+  font-size: 16px;
+  color: #fff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  opacity: 0;
+}
+
+.wallpaper-option.selected .wallpaper-thumb {
   border-color: #fff;
-  transform: scale(1.06);
 }
 
-.settings-swatch:active .settings-swatch-preview {
-  transform: scale(0.94);
+.wallpaper-option.selected .wallpaper-thumb > i {
+  opacity: 1;
 }
 
-.settings-swatch-label {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.8);
+.wallpaper-option:active .wallpaper-thumb {
+  transform: scale(0.96);
+}
+
+.wallpaper-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
   text-shadow: var(--text-shadow);
 }
 
-/* Evenly-spaced stops (no explicit percentages - CSS distributes them evenly on its own)
-   rather than the bunched-up ones these used to carry, AND a 135deg diagonal angle instead of
-   straight-down 180deg on every one of the linear ones below - picked over several other
-   options (even-but-still-180deg, hard-banded blocks) as the one that actually read as a
-   correct, complete gradient at swatch size rather than looking like a fragment with one end
-   missing. Sky stays a radial gradient (centered glow, not a linear transition, so the same
-   direction concern doesn't apply) and was never reported as looking wrong. */
-.settings-swatch-preview[data-preview="sky"] {
-  background: radial-gradient(120% 90% at 50% 0%, #75bdec, #3f8dd6, #0f3b6e);
+/* "Add photo" - a dashed empty slot. */
+.wallpaper-thumb-add {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.settings-swatch-preview[data-preview="sunset"] {
-  background: linear-gradient(135deg, #2c2560, #b8507a, #f7a95c, #ffce7a);
+.wallpaper-thumb-add > i {
+  opacity: 0.85;
+  margin: 0;
+  font-size: 22px;
 }
 
-.settings-swatch-preview[data-preview="dusk"] {
-  background: linear-gradient(135deg, #10122c, #3a2360, #7a3a5e);
+/* A label wrapping a fully transparent file input - same trick as .webapp-editor-icon-pick, since
+   <input type="file"> can't be restyled directly. */
+.wallpaper-photo-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
-/* Night/Graphite only ever had two stops (start/end), so there was no unevenly-bunched middle
-   to spread out the way Sunset/Dusk had - the two colors themselves were just so close in value
-   (night's #0a0d14 to #161b26 is a barely-there step) that the transition read as flat, which at
-   swatch size looked the same "something's missing" way the bunched-stop cases did. Same
-   starting color as before, just a visibly lighter/darker other end plus the same 135deg angle
-   as the rest of the family above. */
-.settings-swatch-preview[data-preview="night"] {
-  background: linear-gradient(135deg, #0a0d14, #262e40);
+.wallpaper-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
 }
 
-.settings-swatch-preview[data-preview="graphite"] {
-  background: linear-gradient(135deg, #4b5461, #171a20);
+.wallpaper-photo-actions.hidden {
+  display: none;
+}
+
+.wallpaper-photo-btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  padding: 9px 14px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ============================== Home button ============================== */
-/* A physical-style home button fixed at the bottom center, like a real tablet - the
-   way back to the home screen from inside any opened app. */
+/* The way back to the home screen from inside any opened app - a labelled "< Home" pill fixed at
+   the bottom center. The bare ring it replaced read more like a record button than "back"; this
+   keeps the same big, thumb-reachable spot on a tablet. */
 
 #home-button {
   position: fixed;
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  height: 48px;
+  padding: 0 22px 0 18px;
+  border-radius: 999px;
   background: var(--dock-bg);
   border: 1px solid var(--dock-border);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-  padding: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
   /* Above every per-tab overlay, including Flight Tracker's HUD bar (z-index 500 - see
      .tracker-hud in style.css) which otherwise sits right on top of it, both being fixed/
      absolute elements pinned near the bottom-center of the screen - this is the one control
@@ -1235,15 +1369,18 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   display: none;
 }
 
-#home-button:active {
-  transform: translateX(-50%) scale(0.93);
+#home-button i {
+  font-size: 14px;
 }
 
-#home-button-ring {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.9);
+@media (hover: hover) {
+  #home-button:hover {
+    background: rgba(30, 41, 59, 0.96);
+  }
+}
+
+#home-button:active {
+  transform: translateX(-50%) scale(0.95);
 }
 
 /* ============================== EFL (Electronic Flight Log) ============================== */
@@ -1384,11 +1521,9 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   transform: scale(0.93);
 }
 
-.efl-home-ring {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #fff;
+.efl-home-btn i {
+  font-size: 18px;
+  color: #fff;
 }
 
 .efl-tab-btn {
@@ -1416,13 +1551,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 }
 
 .efl-tab-icon {
-  width: 22px;
-  height: 22px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  font-size: 19px;
 }
 
 .efl-tab-btn.selected {
@@ -1695,7 +1824,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   background: none;
   border: none;
   color: #fff;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
   padding: 0;
@@ -1870,7 +1999,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   border-radius: 50%;
   width: 34px;
   height: 34px;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1921,7 +2050,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 8px 10px;
-  font-family: "SF Mono", "Consolas", "Menlo", monospace;
+  font-family: var(--font-mono);
   font-size: 12.5px;
   line-height: 1.5;
   color: #1f2937;
@@ -2007,7 +2136,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   background: #fff;
   border: 1px solid #cbd5e1;
   color: var(--efl-blue);
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -2256,6 +2385,10 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   opacity: 0.6;
 }
 
+.efl-pdf-original-link i {
+  font-size: 12px;
+}
+
 /* Wraps SimBrief's own plan_html verbatim (see /api/simbrief/planhtml). #efl-pdf-html-inner
    holds the actual content and is scaled as a whole to fit the available width (see
    fitPdfHtmlToWidth() in app.js) rather than reflowed - the OFP's tabular sections are
@@ -2385,7 +2518,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   background: #fff;
   border-radius: 8px;
   padding: 10px 12px;
-  font-family: "Consolas", "SFMono-Regular", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.5;
   color: #111827;
@@ -2479,7 +2612,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   gap: 6px 20px;
   padding: 7px 0;
   border-bottom: 1px solid #e5e7eb;
-  font-family: "Consolas", "SFMono-Regular", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 
@@ -2716,7 +2849,7 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   border: none;
   background: #1f2328;
   color: #fff;
-  font-size: 13px;
+  font-size: 10px;
   line-height: 1;
   cursor: pointer;
   padding: 0;
@@ -2943,7 +3076,6 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 }
 
 .doc-folder-path {
-  font-family: "SF Mono", Consolas, monospace;
   font-size: 12px;
 }
 
@@ -2962,6 +3094,10 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 
 .doc-back-btn:active {
   opacity: 0.7;
+}
+
+.doc-back-btn i {
+  font-size: 14px;
 }
 
 .doc-page-input {
@@ -3420,14 +3556,9 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   justify-content: center;
 }
 
-.loadsheet-notif-icon svg {
-  width: 18px;
-  height: 18px;
-  stroke: #fff;
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.loadsheet-notif-icon i {
+  font-size: 15px;
+  color: #fff;
 }
 
 .loadsheet-notif-text {
@@ -3476,6 +3607,9 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 }
 
 .tracker-sheet {
+  /* One panel color for every overlay on the map, so they read as a single set of controls. */
+  --tracker-panel: rgba(15, 23, 42, 0.9);
+  --tracker-panel-border: rgba(255, 255, 255, 0.14);
   position: relative;
   height: 100%;
   width: 100%;
@@ -3490,95 +3624,208 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   background: #0c1a22;
 }
 
-/* Slightly darkened/desaturated so OSM's default colorful street styling reads more like a
-   dim, glare-free cockpit moving map than a consumer web map. */
-.tracker-tiles {
-  filter: saturate(0.55) brightness(0.75) contrast(1.05);
+/* Chromium leaves hairline seams between map tiles whenever the screen scale isn't a whole number
+   (125%, 150% - Leaflet issue #3575): the two tiles' anti-aliased edges each only half-cover the
+   pixel they share. plus-lighter adds the halves back up to one solid pixel. Every tile layer is
+   its own stacking context, so this only ever blends a tile with its neighbours - never with the
+   layer underneath it, which would tint the labels. */
+.tracker-map img.leaflet-tile {
+  mix-blend-mode: plus-lighter;
 }
 
-.tracker-header {
+/* The flight card - callsign, aircraft and live status on top; origin -> destination with a
+   progress bar whose plane slides along as the flight goes (see setTrackerProgress); then the
+   planned times, cruise level and distance. */
+.tracker-card {
   position: absolute;
   top: 12px;
   left: 12px;
   z-index: 500;
-  background: rgba(12, 20, 28, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
-  padding: 8px 14px;
-  pointer-events: none;
-  backdrop-filter: blur(6px);
-}
-
-.tracker-route {
-  font-size: 17px;
-  font-weight: 700;
+  width: min(400px, calc(100% - 90px));
+  padding: 14px 16px 12px;
+  background: var(--tracker-panel);
+  border: 1px solid var(--tracker-panel-border);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: #fff;
-  letter-spacing: 0.02em;
+  pointer-events: none;
 }
 
-.tracker-route-arrow {
-  color: #29d3ff;
-  font-size: 13px;
-  vertical-align: middle;
+.tracker-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .tracker-callsign {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
-  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tracker-chip {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .tracker-status-pill {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 500;
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(12, 20, 28, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 4px 10px;
   border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 12px;
+  background: rgba(255, 92, 92, 0.14);
+  color: #fca5a5;
+  font-size: 11.5px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(6px);
+  white-space: nowrap;
 }
 
 .tracker-status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #ff5c5c;
   box-shadow: 0 0 6px rgba(255, 92, 92, 0.8);
 }
 
+.tracker-status-pill.tracker-status-live {
+  background: rgba(53, 224, 122, 0.14);
+  color: #86efac;
+}
+
 .tracker-status-pill.tracker-status-live .tracker-status-dot {
   background: #35e07a;
   box-shadow: 0 0 6px rgba(53, 224, 122, 0.9);
+  animation: tracker-live-pulse 1.6s ease-in-out infinite;
 }
 
-.tracker-status-pill.tracker-status-live #tracker-status-text {
+@keyframes tracker-live-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.tracker-leg {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.tracker-apt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tracker-apt-dest {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.tracker-apt-code {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.tracker-apt-name {
+  max-width: 120px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tracker-progress {
+  position: relative;
+  height: 24px;
+}
+
+/* A dashed track for the leg still to fly, filled solid behind the plane for what's flown. */
+.tracker-progress-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  overflow: hidden;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0 6px, transparent 6px 11px);
+}
+
+.tracker-progress-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #29d3ff, #e03fd8);
+  transition: width 1s linear;
+}
+
+.tracker-progress-plane {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(-50%, -50%);
+  font-size: 15px;
   color: #fff;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+  transition: left 1s linear;
 }
 
+.tracker-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tracker-meta-item > span {
+  margin-right: 5px;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* The instrument strip - a compact centered bar, label over value over unit like a PFD data
+   block. Until SimConnect has a position it collapses to a single waiting message (.is-waiting,
+   see updateTrackerPosition) instead of a row of dashes. */
 .tracker-hud {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  /* Clears the floating home button (60px circle, centered, sitting at bottom:16px - see
+  left: 50%;
+  transform: translateX(-50%);
+  /* Clears the floating Home pill (48px tall, centered, sitting at bottom:16px - see
      #home-button) instead of running underneath it. */
-  bottom: 88px;
+  bottom: 76px;
   z-index: 500;
+  width: min(760px, calc(100% - 24px));
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-  background: rgba(12, 20, 28, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
-  padding: 8px 6px;
-  backdrop-filter: blur(6px);
+  overflow: hidden;
+  background: var(--tracker-panel);
+  border: 1px solid var(--tracker-panel-border);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .tracker-hud-item {
@@ -3586,67 +3833,229 @@ body[data-wallpaper="graphite"] #wallpaper::after {
   flex-direction: column;
   align-items: center;
   min-width: 0;
+  padding: 10px 6px 9px;
 }
 
-.tracker-hud-value {
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.tracker-hud-item + .tracker-hud-item {
+  border-left: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .tracker-hud-label {
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.55);
-  margin-top: 1px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #29d3ff;
 }
 
-.tracker-center-btn {
+/* Inter with tabular figures, not B612 Mono - the mono face gives "," and ":" a full character
+   cell, which made 37,000 read as "37, 000" and 4:18 as "4: 18". */
+.tracker-hud-value {
+  margin-top: 2px;
+  font-size: 21px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.tracker-hud-unit {
+  margin-top: 1px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.tracker-hud-waiting {
+  display: none;
+}
+
+.tracker-hud.is-waiting {
+  width: max-content;
+  max-width: calc(100% - 24px);
+  grid-template-columns: 1fr;
+}
+
+.tracker-hud.is-waiting .tracker-hud-item {
+  display: none;
+}
+
+.tracker-hud.is-waiting .tracker-hud-waiting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.tracker-hud-waiting i {
+  color: #29d3ff;
+}
+
+@media (max-width: 600px) {
+  .tracker-hud-value {
+    font-size: 16px;
+  }
+}
+
+/* Map controls - one column down the right edge: map type, zoom, then
+   center-on-aircraft. 44px targets, where Leaflet's own zoom squares were 30px. */
+.tracker-controls {
   position: absolute;
+  top: 12px;
   right: 12px;
-  bottom: 168px;
   z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tracker-ctrl-btn {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  background: rgba(12, 20, 28, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.55);
+  border-radius: 12px;
+  background: var(--tracker-panel);
+  border: 1px solid var(--tracker-panel-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-.tracker-center-btn svg {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
+.tracker-ctrl-btn i {
+  font-size: 16px;
 }
 
-.tracker-center-btn:active {
-  transform: scale(0.94);
+.tracker-ctrl-btn:active {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.tracker-ctrl-btn.active {
+  color: #29d3ff;
 }
 
 .tracker-center-btn.active {
-  color: #29d3ff;
   border-color: rgba(41, 211, 255, 0.6);
 }
 
+/* Zoom in/out share one rounded block, split by a hairline, like every other map app. */
+.tracker-ctrl-group {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--tracker-panel-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.tracker-ctrl-group .tracker-ctrl-btn {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.tracker-ctrl-group .tracker-ctrl-btn + .tracker-ctrl-btn {
+  border-top: 1px solid var(--tracker-panel-border);
+}
+
+/* The map-type picker - opens to the left of the control column, level with its Layers button. */
+.tracker-layer-menu {
+  position: absolute;
+  top: 12px;
+  right: 66px;
+  z-index: 510;
+  display: grid;
+  grid-template-columns: repeat(2, 84px);
+  gap: 6px;
+  padding: 10px;
+  background: var(--tracker-panel);
+  border: 1px solid var(--tracker-panel-border);
+  border-radius: 14px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.tracker-layer-menu.hidden {
+  display: none;
+}
+
+.tracker-layer-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tracker-layer-opt.selected {
+  border-color: #29d3ff;
+  color: #fff;
+}
+
+/* A hint of what each basemap looks like, drawn in CSS rather than fetching a sample tile. */
+.tracker-layer-swatch {
+  width: 68px;
+  height: 46px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.tracker-layer-swatch[data-layer="map"] {
+  background: linear-gradient(135deg, #ece8df, #d3e2ee 60%, #a9cbe4);
+  color: #3b4a5a;
+  text-shadow: none;
+}
+
+.tracker-layer-swatch[data-layer="satellite"] {
+  background:
+    radial-gradient(circle at 30% 35%, #5b7a3a, transparent 45%),
+    radial-gradient(circle at 75% 70%, #8a7a55, transparent 50%),
+    linear-gradient(135deg, #1f3d2a, #26455e 70%, #13263b);
+}
+
+.tracker-layer-swatch[data-layer="terrain"] {
+  background:
+    radial-gradient(circle at 35% 40%, #c9b48a, transparent 45%),
+    linear-gradient(135deg, #a9c68f, #d8cfa9 55%, #b7cfe0);
+  color: #3f4a2e;
+  text-shadow: none;
+}
+
+.tracker-layer-swatch[data-layer="dark"] {
+  background: linear-gradient(135deg, #1b1f27, #262b35 60%, #11141a);
+}
+
 .tracker-apt-icon svg circle {
-  fill: #0b3a4a;
-  stroke: #29d3ff;
-  stroke-width: 2px;
+  fill: #ffffff;
+  stroke: #e03fd8;
+  stroke-width: 3px;
 }
 
 .tracker-apt-label,
 .tracker-wpt-label {
   background: rgba(12, 20, 28, 0.85) !important;
-  border: 1px solid rgba(41, 211, 255, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
   color: #fff !important;
   font-size: 11px !important;
   font-weight: 600;
@@ -3656,11 +4065,11 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 
 .tracker-apt-label::before,
 .tracker-wpt-label::before {
-  border-top-color: rgba(41, 211, 255, 0.4) !important;
+  border-top-color: rgba(255, 255, 255, 0.25) !important;
 }
 
 .tracker-aircraft-icon {
-  /* Leaflet's default icon has its own background/border - this marker draws its own SVG. */
+  /* Leaflet's default icon has its own background/border - this marker draws its own glyph. */
   background: transparent;
   border: none;
 }
@@ -3668,33 +4077,22 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 .tracker-aircraft-rotor {
   width: 100%;
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 1.5s linear;
 }
 
-.tracker-aircraft-rotor svg path {
-  fill: #ffd23f;
-  stroke: #7a5200;
-  stroke-width: 0.6px;
+/* The thin dark outline and shadow keep the yellow symbol readable over a pale patch of basemap
+   (a coastline, snow, a city) - the same job the old SVG silhouette's own stroke did. */
+.tracker-aircraft-rotor i {
+  font-size: 26px;
+  color: #ffd23f;
+  -webkit-text-stroke: 0.6px #7a5200;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
 }
 
-/* Leaflet's default top-left zoom control sits directly under .tracker-header otherwise -
-   pushed down to clear it. */
-.tracker-sheet .leaflet-top.leaflet-left {
-  top: 66px;
-}
-
-/* Leaflet's own zoom control and attribution strip, restyled to sit on a dark moving map
-   instead of their default white-on-white web-map look. */
-.tracker-sheet .leaflet-control-zoom a {
-  background: rgba(12, 20, 28, 0.82);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-.tracker-sheet .leaflet-control-zoom a:hover {
-  background: rgba(12, 20, 28, 0.95);
-}
-
+/* Leaflet's attribution strip, restyled to match the rest of the map's dark overlays. */
 .tracker-sheet .leaflet-control-attribution {
   background: rgba(12, 20, 28, 0.72);
   color: rgba(255, 255, 255, 0.6);
@@ -3703,3 +4101,324 @@ body[data-wallpaper="graphite"] #wallpaper::after {
 .tracker-sheet .leaflet-control-attribution a {
   color: rgba(255, 255, 255, 0.8);
 }
+
+/* ============================== Website App monograms (Settings list) ============================== */
+
+.webapp-row-monogram {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ============================== Scrollbars ============================== */
+/* Thin, rounded scrollbars in place of the chunky gray OS ones. ::-webkit-scrollbar covers WebView2
+   and Safari; Firefox only knows scrollbar-color/width - and Chromium lets those override the
+   richer styling here if it sees them, hence keeping them behind the @supports at the end. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.24);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Light surfaces (the EFL sheet in its light theme, the white editors) get a dark thumb. */
+#detail-screen:has(.efl-sheet)::-webkit-scrollbar-thumb,
+.efl-sheet ::-webkit-scrollbar-thumb,
+.delay-picker-overlay ::-webkit-scrollbar-thumb,
+.atis-modal-overlay ::-webkit-scrollbar-thumb,
+.webapp-editor-overlay ::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 23, 42, 0.28);
+}
+
+#detail-screen:has(.efl-sheet)::-webkit-scrollbar-thumb:hover,
+.efl-sheet ::-webkit-scrollbar-thumb:hover,
+.delay-picker-overlay ::-webkit-scrollbar-thumb:hover,
+.atis-modal-overlay ::-webkit-scrollbar-thumb:hover,
+.webapp-editor-overlay ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(15, 23, 42, 0.45);
+}
+
+body[data-efl-theme="dark"] #detail-screen:has(.efl-sheet)::-webkit-scrollbar-thumb,
+body[data-efl-theme="dark"] .efl-sheet ::-webkit-scrollbar-thumb,
+body[data-efl-theme="dark"] .delay-picker-overlay ::-webkit-scrollbar-thumb,
+body[data-efl-theme="dark"] .atis-modal-overlay ::-webkit-scrollbar-thumb {
+  background-color: rgba(226, 232, 240, 0.22);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+  }
+}
+
+/* ============================== EFL dark mode ============================== */
+/* Toggled from the moon/sun button on the EFL's flight strip (see applyEflTheme in app.js) and
+   remembered per device. Most of the log already takes its colors from the --efl-* palette, so
+   re-pointing those does the bulk of it; the rules after that cover the handful of surfaces that
+   were written with their own light colors. The tab bar, save pill and the delay/ATIS pickers
+   live outside .efl-sheet (fixed, or appended to <body>), so they're targeted directly. */
+body[data-efl-theme="dark"] #detail-screen:has(.efl-sheet),
+body[data-efl-theme="dark"] .delay-picker-overlay,
+body[data-efl-theme="dark"] .atis-modal-overlay {
+  --efl-blue: #3b82f6;
+  --efl-blue-deep: #bfdbfe;
+  --efl-banner: #172554;
+  --efl-text: #e5e7eb;
+  --efl-muted: #94a3b8;
+  --efl-line: #273449;
+  --efl-field-border: #3b4a61;
+  --efl-tab-idle: #7c8799;
+}
+
+body[data-efl-theme="dark"] #detail-screen:has(.efl-sheet),
+body[data-efl-theme="dark"] .efl-sheet {
+  background: #0f172a;
+}
+
+body[data-efl-theme="dark"] .efl-header {
+  border-bottom-color: #1e3a8a;
+}
+
+body[data-efl-theme="dark"] .efl-sheet .coming-soon,
+body[data-efl-theme="dark"] .fuel-times-note {
+  color: #94a3b8;
+}
+
+body[data-efl-theme="dark"] .efl-tabbar {
+  background: #111a2e;
+  border-top-color: #273449;
+}
+
+/* Deeper than --efl-blue so the white heading text on it keeps its contrast. */
+body[data-efl-theme="dark"] .efl-section-title {
+  background: #1d4ed8;
+}
+
+body[data-efl-theme="dark"] .fuel-box,
+body[data-efl-theme="dark"] .delay-time-input,
+body[data-efl-theme="dark"] .delay-picker-search,
+body[data-efl-theme="dark"] .fmc-table input,
+body[data-efl-theme="dark"] .fmc-notes-field textarea,
+body[data-efl-theme="dark"] .wp-input-clear-row input,
+body[data-efl-theme="dark"] .atis-field input,
+body[data-efl-theme="dark"] .atis-field select {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body[data-efl-theme="dark"] .fuel-box input,
+body[data-efl-theme="dark"] .delay-reason-btn {
+  color: #f1f5f9;
+}
+
+body[data-efl-theme="dark"] .delay-reason-btn {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body[data-efl-theme="dark"] .fuel-unit {
+  color: #cbd5e1;
+}
+
+body[data-efl-theme="dark"] .fuel-box-readonly,
+body[data-efl-theme="dark"] .atis-field input[readonly] {
+  background: #172033;
+}
+
+body[data-efl-theme="dark"] .fuel-box-readonly input,
+body[data-efl-theme="dark"] .atis-field input[readonly] {
+  color: #94a3b8;
+}
+
+body[data-efl-theme="dark"] .wp-input-clear-row input[readonly] {
+  background: #334155;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+body[data-efl-theme="dark"] .fuel-sign-toggle,
+body[data-efl-theme="dark"] .fuel-choice-toggle,
+body[data-efl-theme="dark"] .fmc-impact-toggle,
+body[data-efl-theme="dark"] .fmc-copy-btn,
+body[data-efl-theme="dark"] .efl-sheet .wx-pager-btn,
+body[data-efl-theme="dark"] .wx-zoom-btn {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body[data-efl-theme="dark"] .fuel-sign-opt:not(.selected),
+body[data-efl-theme="dark"] .fuel-choice-opt:not(.selected),
+body[data-efl-theme="dark"] .fmc-impact-toggle-opt:not(.selected) {
+  color: #94a3b8;
+}
+
+body[data-efl-theme="dark"] .delay-reason-btn-empty,
+body[data-efl-theme="dark"] .wp-card-title-wx,
+body[data-efl-theme="dark"] .fmc-atis-text:empty::before {
+  color: #64748b;
+}
+
+body[data-efl-theme="dark"] .delay-picker-overlay,
+body[data-efl-theme="dark"] .atis-modal-overlay {
+  background: #0b1220;
+}
+
+body[data-efl-theme="dark"] .delay-picker-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body[data-efl-theme="dark"] .delay-picker-item.selected {
+  background: #1e3a8a;
+  border-color: var(--efl-blue);
+}
+
+body[data-efl-theme="dark"] .delay-picker-item-desc,
+body[data-efl-theme="dark"] .wx-airport-heading,
+body[data-efl-theme="dark"] .wx-fir-heading,
+body[data-efl-theme="dark"] .fmc-label,
+body[data-efl-theme="dark"] .fmc-impacts-label {
+  color: #e5e7eb;
+}
+
+body[data-efl-theme="dark"] .efl-save-bar,
+body[data-efl-theme="dark"] .efl-sheet .wx-pager {
+  background: #1e293b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+body[data-efl-theme="dark"] .efl-sheet .wx-pager-label,
+body[data-efl-theme="dark"] .wp-card-title-time {
+  color: #cbd5e1;
+}
+
+body[data-efl-theme="dark"] .wx-raw {
+  background: #111a2e;
+  border-color: #273449;
+  color: #e2e8f0;
+}
+
+body[data-efl-theme="dark"] .wx-sigmet {
+  background: #3b1219;
+  border-color: #7f1d1d;
+}
+
+body[data-efl-theme="dark"] .wx-chart-img {
+  border-color: #273449;
+}
+
+body[data-efl-theme="dark"] .notam-group {
+  background: #111a2e;
+  border-color: #273449;
+}
+
+body[data-efl-theme="dark"] .notam-group-title {
+  background: #1e293b;
+  border-bottom-color: #273449;
+  color: #e5e7eb;
+}
+
+body[data-efl-theme="dark"] .fmc-table td,
+body[data-efl-theme="dark"] .fmc-impacts-row {
+  border-bottom-color: #273449;
+}
+
+body[data-efl-theme="dark"] .fmc-arpt,
+body[data-efl-theme="dark"] .fmc-static,
+body[data-efl-theme="dark"] .fmc-impacts-value {
+  color: #94a3b8;
+}
+
+/* The Block Fuel row's own dark band would vanish into a dark sheet - blue instead. */
+body[data-efl-theme="dark"] .fmc-row-highlight {
+  background: #1d4ed8;
+}
+
+body[data-efl-theme="dark"] .fmc-row-highlight td {
+  border-bottom-color: #1d4ed8;
+}
+
+body[data-efl-theme="dark"] .fmc-steps,
+body[data-efl-theme="dark"] .fmc-info-value,
+body[data-efl-theme="dark"] .fmc-impacts,
+body[data-efl-theme="dark"] .fmc-atis-box,
+body[data-efl-theme="dark"] .wp-card,
+body[data-efl-theme="dark"] .wp-card-title {
+  background: #111a2e;
+}
+
+body[data-efl-theme="dark"] .fmc-steps,
+body[data-efl-theme="dark"] .fmc-info-value,
+body[data-efl-theme="dark"] .fmc-atis-text {
+  color: #e5e7eb;
+}
+
+body[data-efl-theme="dark"] .fmc-info-panel {
+  background: #172033;
+}
+
+body[data-efl-theme="dark"] .fmc-info-value > span + span {
+  border-left-color: #273449;
+}
+
+body[data-efl-theme="dark"] .wp-clear-btn {
+  background: #475569;
+}
+
+/* SimBrief's own OFP HTML is a white printed page - inverted (and hue-rotated back, so its colors
+   stay the same hue) into a dark one, with any images flipped back to how they really look. */
+body[data-efl-theme="dark"] .efl-pdf-html {
+  background: #0f172a;
+  border-color: #273449;
+}
+
+body[data-efl-theme="dark"] .efl-pdf-html-inner {
+  filter: invert(0.88) hue-rotate(180deg);
+}
+
+body[data-efl-theme="dark"] .efl-pdf-html-inner img {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* The light/dark switch itself, at the right-hand end of the flight strip. */
+.efl-theme-btn {
+  margin-left: auto;
+  align-self: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(20, 66, 143, 0.25);
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--efl-blue-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.efl-theme-btn:active {
+  transform: scale(0.94);
+}
+
+body[data-efl-theme="dark"] .efl-theme-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(191, 219, 254, 0.3);
+}
+

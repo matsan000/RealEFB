@@ -10,11 +10,28 @@
        runtime (see initTrackerMap in app.js), same internet dependency the app already has for
        SimBrief/weather. -->
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+  <!-- Font Awesome Free 7.3.1 (solid style only) and Inter/B612 Mono from Google Fonts - vendored
+       locally for the same reason as Leaflet above, minus the runtime internet dependency: every
+       icon and every line of text in the app comes straight from these files. Only the solid
+       style ships (fontawesome.min.css is the base every style needs on top of its own file) -
+       to use a regular/brands icon, copy that style's css + webfont over from the same
+       @fortawesome/fontawesome-free release and link it here too. -->
+  <link rel="stylesheet" href="vendor/fontawesome/css/fontawesome.min.css" />
+  <link rel="stylesheet" href="vendor/fontawesome/css/solid.min.css" />
+  <link rel="stylesheet" href="vendor/google-fonts/fonts.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <script>
-    try { document.body.dataset.wallpaper = localStorage.getItem("realefb.wallpaper") || "sky"; } catch {}
+    // Applied before first paint so there's no flash of the default wallpaper - same logic as
+    // applyWallpaper() in app.js, which takes over once that loads.
+    try {
+      var wp = localStorage.getItem("realefb.wallpaper") || "sky";
+      var photo = localStorage.getItem("realefb.wallpaperPhoto");
+      if (photo) document.body.style.setProperty("--wallpaper-photo", 'url("' + photo + '")');
+      if (wp === "photo" && !photo) wp = "sky";
+      document.body.dataset.wallpaper = wp;
+    } catch {}
   </script>
 
   <div id="wallpaper"></div>
@@ -35,9 +52,7 @@
   </div>
 
   <button id="loadsheet-notification" class="loadsheet-notif hidden" type="button">
-    <span class="loadsheet-notif-icon">
-      <svg viewBox="0 0 24 24"><path d="M4 4h16v12H9l-4 4V4z"/><path d="M8 9h8M8 12.5h5"/></svg>
-    </span>
+    <span class="loadsheet-notif-icon"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
     <span class="loadsheet-notif-text">
       <span class="loadsheet-notif-title">Loadsheet Received</span>
       <span class="loadsheet-notif-sub">Tap to view Dispatch</span>
@@ -58,10 +73,7 @@
 
   <main id="init-screen" class="hidden">
     <div class="init-card">
-      <!-- Lucide's "plane" icon (ISC-licensed) - same reasoning as ICONS in app.js: a hand-drawn
-           path here didn't sit on the grid quite right, so this is exact path data from a real
-           icon set instead. -->
-      <div class="init-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></div>
+      <div class="init-icon"><i class="fa-solid fa-plane-departure" aria-hidden="true"></i></div>
       <h1 class="init-title">Initialize Flight</h1>
       <p class="init-subtitle">Enter your SimBrief username or pilot ID to load your latest flight plan.</p>
       <input id="init-simbrief-id" type="text" placeholder="e.g. jdoe123" autocomplete="off" />
@@ -79,8 +91,9 @@
     <div id="detail-body"></div>
   </main>
 
-  <button id="home-button" class="hidden" aria-label="Home">
-    <span id="home-button-ring"></span>
+  <button id="home-button" class="hidden" aria-label="Back to Home">
+    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+    <span>Home</span>
   </button>
 
   <script src="js/flightlog-report.js"></script>

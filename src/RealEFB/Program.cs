@@ -129,6 +129,12 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // Per-monitor DPI aware, set before any window exists. Without it Windows treats RealEFB
+        // as DPI-unaware and bitmap-stretches the whole window on any display above 100% scaling
+        // (125%/150% is the usual laptop default) - which is what made every page, text, icons
+        // and the moving map included, render soft and blurry. PerMonitorV2 lets WebView2 draw at
+        // the monitor's real resolution, and redraw when the window moves to a different one.
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
