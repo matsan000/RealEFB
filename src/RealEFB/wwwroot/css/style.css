@@ -4381,15 +4381,24 @@ body[data-efl-theme="dark"] .wp-clear-btn {
   background: #475569;
 }
 
-/* SimBrief's own OFP HTML is a white printed page - inverted (and hue-rotated back, so its colors
-   stay the same hue) into a dark one, with any images flipped back to how they really look. */
+/* SimBrief's own OFP HTML is a white printed page - fully inverted (and hue-rotated back, so its
+   colors stay the same hue) into a black one, with any images flipped back to how they really
+   look. */
 body[data-efl-theme="dark"] .efl-pdf-html {
-  background: #0f172a;
+  background: #000;
   border-color: #273449;
 }
 
+/* The invert below only produces readable text if the OFP is in its original light-mode colors
+   (near-black text on a white page) going in - but the dark theme has already re-pointed
+   --efl-text to a light grey, which the OFP's <pre> inherits, so inverting that landed it back
+   as dark-on-black and unreadable. Forcing the page white and the text near-black here first
+   means invert(1) lands them as crisp near-white on black. */
 body[data-efl-theme="dark"] .efl-pdf-html-inner {
-  filter: invert(0.88) hue-rotate(180deg);
+  color: #1a1a1a;
+  background: #fff;
+  --efl-text: #1a1a1a;
+  filter: invert(1) hue-rotate(180deg);
 }
 
 body[data-efl-theme="dark"] .efl-pdf-html-inner img {
