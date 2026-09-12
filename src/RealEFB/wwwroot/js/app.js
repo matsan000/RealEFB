@@ -3166,8 +3166,11 @@ async function saveFuelFmc() {
 // every navlog fix in order, the arrival ICAO, On Block), each with Planned/Estimate/Actual
 // rows for Time, Fuel on Board, and Burn (Off Block has no Burn - nothing's been consumed
 // yet at that point). Planned comes straight from SimBrief's own figures, unadjusted - it's
-// a fixed reference, not a live estimate. Estimate has no data source yet so it's always
-// "-". Actual Time and Actual Fuel on Board are typed by the pilot and start blank (never
+// a fixed reference, not a live estimate. Estimate (Time, Fuel on Board, and Burn alike) carries
+// the delta from the most recently-entered Actual of that same field forward through the rest of
+// the route (see updateWpEstimates) - "-" until an Actual exists somewhere earlier in the route
+// to project from. Actual Time and Actual Fuel on Board are typed by the pilot and start blank
+// (never
 // pre-filled from SimBrief or the Fuel/FMC tab); Actual Burn is never typed directly - see
 // updateWpActualBurn(). Off Block and the two ICAO cards start expanded (they're always
 // relevant); every navlog fix starts collapsed, since a long route can have dozens - all of
@@ -3197,7 +3200,10 @@ async function renderWaypointsTab(content, fp) {
 
     const timeEl = document.getElementById(`wp-${card.id}-time`);
     autoColonizeTime(timeEl);
-    timeEl.addEventListener("input", () => updateWpTimeDiff(card.id));
+    timeEl.addEventListener("input", () => {
+      updateWpTimeDiff(card.id);
+      updateWpEstimates(cards);
+    });
     updateWpTimeDiff(card.id);
 
     const fuelEl = document.getElementById(`wp-${card.id}-fuel`);
@@ -3207,6 +3213,9 @@ async function renderWaypointsTab(content, fp) {
       // computed from, so any Actual Fuel on Board edit - this card's or Off Block's - can
       // change every card's Burn.
       for (const c of cards) if (c.hasBurn) updateWpActualBurn(c.id);
+      // Estimates read the freshly-recomputed Actual Burn values above, so this has to run after
+      // that loop, not before it.
+      updateWpEstimates(cards);
     });
     updateWpNumericDiff(card.id, "fuel");
   }
@@ -3216,6 +3225,10 @@ async function renderWaypointsTab(content, fp) {
   for (const card of cards) {
     if (card.hasBurn) updateWpActualBurn(card.id);
   }
+
+  // Estimate Time reads every card's Actual Time input, so its first computation also has to
+  // wait until they all exist (same reasoning as Actual Burn just above).
+  updateWpEstimates(cards);
 
   for (const btn of content.querySelectorAll(".wp-clear-btn")) {
     btn.addEventListener("click", (e) => {
@@ -3365,6 +3378,70 @@ function updateWpTimeDiff(id) {
   diffEl.classList.add(diff > 0 ? "wp-diff-red" : "wp-diff-green");
 }
 
+// Real dispatch carries a known delay/advance forward through the rest of the route - so once
+// the pilot enters an Actual anywhere, every later card that hasn't had its own Actual entered
+// yet gets an Estimate of Planned + that delta, independently for Time, Fuel on Board, and Burn.
+// Walking the cards in route order and overwriting each field's running delta on every Actual
+// found means the most recently-reached fix always wins, superseding any earlier one further
+// back down the route - same idea for all three, just a plain numeric delta for Fuel/Burn
+// instead of a minutes-of-day one for Time. Burn's own "Actual" is never typed directly (see
+// updateWpActualBurn) but is otherwise carried forward exactly the same way.
+function updateWpEstimates(cards) {
+  let deltaMinutes = null;
+  let deltaFuel = null;
+  let deltaBurn = null;
+
+  for (const c of cards) {
+    const timeInput = document.getElementById(`wp-${c.id}-time`);
+    const timeEstimateEl = document.getElementById(`wp-${c.id}-estimate-time`);
+    const timePlanned = parseHHMM(timeInput.dataset.planned);
+    const timeActual = parseHHMM(timeInput.value);
+
+    if (timeActual !== null) {
+      if (timePlanned !== null) {
+        let diff = timeActual - timePlanned;
+        if (diff > 720) diff -= 1440; // midnight rollover, same reasoning as updateWpTimeDiff
+        if (diff < -720) diff += 1440;
+        deltaMinutes = diff;
+      }
+      timeEstimateEl.textContent = "-"; // Actual's already shown for this card, no need for an Estimate too
+    } else if (deltaMinutes === null || timePlanned === null) {
+      timeEstimateEl.textContent = "-";
+    } else {
+      timeEstimateEl.textContent = formatMinutes(((timePlanned + deltaMinutes) % 1440 + 1440) % 1440);
+    }
+
+    const fuelInput = document.getElementById(`wp-${c.id}-fuel`);
+    const fuelEstimateEl = document.getElementById(`wp-${c.id}-estimate-fuel`);
+    const fuelPlanned = fuelInput.dataset.planned === "" ? null : Number(fuelInput.dataset.planned);
+    const fuelActual = fuelInput.value === "" ? null : Number(fuelInput.value);
+
+    if (fuelActual !== null) {
+      if (fuelPlanned !== null) deltaFuel = fuelActual - fuelPlanned;
+      fuelEstimateEl.textContent = "-";
+    } else if (deltaFuel === null || fuelPlanned === null) {
+      fuelEstimateEl.textContent = "-";
+    } else {
+      fuelEstimateEl.textContent = Math.round(fuelPlanned + deltaFuel);
+    }
+
+    if (!c.hasBurn) continue;
+    const burnInput = document.getElementById(`wp-${c.id}-burn`);
+    const burnEstimateEl = document.getElementById(`wp-${c.id}-estimate-burn`);
+    const burnPlanned = burnInput.dataset.planned === "" ? null : Number(burnInput.dataset.planned);
+    const burnActual = burnInput.value === "" ? null : Number(burnInput.value);
+
+    if (burnActual !== null) {
+      if (burnPlanned !== null) deltaBurn = burnActual - burnPlanned;
+      burnEstimateEl.textContent = "-";
+    } else if (deltaBurn === null || burnPlanned === null) {
+      burnEstimateEl.textContent = "-";
+    } else {
+      burnEstimateEl.textContent = Math.round(burnPlanned + deltaBurn);
+    }
+  }
+}
+
 // Same idea as updateWpTimeDiff, for Fuel on Board/Burn - shown as a percentage plus the raw
 // difference (e.g. "+2.3% | +113"), since a fixed weight difference means very different
 // things depending on how much fuel is actually involved. More Fuel on Board than planned is
@@ -3454,9 +3531,9 @@ function buildWaypointsTabHtml(cards, actuals) {
           ${c.hasBurn ? `<span class="wp-static">${fmtStaticNum(c.plannedBurn)}</span>` : ""}
 
           <span class="wp-row-label">Estimate</span>
-          <span class="wp-static">-</span>
-          <span class="wp-static">-</span>
-          ${c.hasBurn ? '<span class="wp-static">-</span>' : ""}
+          <span class="wp-static" id="wp-${c.id}-estimate-time">-</span>
+          <span class="wp-static" id="wp-${c.id}-estimate-fuel">-</span>
+          ${c.hasBurn ? `<span class="wp-static" id="wp-${c.id}-estimate-burn">-</span>` : ""}
 
           <span class="wp-row-label">Actual</span>
           <span class="wp-input-clear">
