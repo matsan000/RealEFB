@@ -4,7 +4,7 @@ Thanks for wanting to help. Bug fixes, new features, and UI/design work are all 
 
 ## Getting set up
 
-You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0). Then:
+You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) and Node.js 22.12+ (or 24 LTS). Then:
 
 ```
 git clone https://github.com/matsan000/RealEFB.git
@@ -18,7 +18,19 @@ For flight plan import you'll need a free [SimBrief](https://www.simbrief.com/) 
 
 ### Frontend edits and live reload
 
-RealEFB serves its own `wwwroot` folder. When you run it with `dotnet run` from the project directory, edits to `wwwroot/` (HTML/CSS/JS) show up on the next page refresh — no rebuild needed. If you instead run a *built* `RealEFB.exe`, it serves the copy in its own `bin` folder, so you'd need to rebuild to see frontend changes. During development, prefer `dotnet run`.
+The React/TypeScript frontend lives in `frontend/`. The .NET build runs its production build when frontend sources change, then serves the generated files from `wwwroot`. Node is a build-time dependency only; desktop and tablet users do not need it.
+
+For frontend development, start the desktop/backend normally, then run:
+
+```sh
+cd frontend
+npm ci
+npm run dev
+```
+
+Open the Vite URL in a browser. API calls and existing static resources are proxied to `http://localhost:5150`; change `vite.config.ts` if your backend uses a different port. React and CSS edits update through Vite. To update the UI served directly by the desktop host, run `npm run build` and rebuild the desktop app. Do not edit generated `wwwroot/index.html` or `wwwroot/web-assets` bundles.
+
+To package checked-in web assets without rebuilding them, pass `-p:SkipFrontendBuild=true` to `dotnet build` or `dotnet publish`.
 
 ## Project layout
 
@@ -32,24 +44,34 @@ src/RealEFB/
   SimBriefFlightPlan.cs parses SimBrief's OFP JSON into the model the app uses
   wwwroot/
     index.html
-    js/app.js           the bulk of the frontend - plain vanilla JS, no framework
     js/flightlog-report.js, js/print-flightlog.js
-    css/style.css
+    web-assets/         generated React app and operational bundles
     print/              the standalone flight-log print page
     vendor/leaflet/     vendored Leaflet, do not edit
   lib/SimConnect/       Microsoft's SimConnect redistributables, do not edit
 installer/              WiX MSI installer project
+frontend/
+  src/App.tsx           RealEFB OS shell, boot screen, dock and screen containers
+  src/HomeScreen.tsx    app launcher and flight widget
+  src/icons.tsx         shared icons and supplied RealEFB logo
+  src/types.ts          typed API data and operational adapter contract
+  src/UtilityApps.tsx           React performance and pushback apps
+  src/StatusBar.tsx     simulator UTC clock and server connection status
+  src/theme.css         responsive flight deck design
+  src/operations.js     existing operational views, isolated behind an adapter
+  src/operations.css    operational document and tool styles
+  tests/                browser tests against the production web assets
 ```
 
 The same UI is served to the desktop app's embedded WebView2 **and** to tablets on the LAN over plain HTTP. If you touch the frontend, check it works in a normal browser too, not just the desktop window.
 
 ## Testing
 
-There's no automated test suite yet — testing is manual. Run the app, load a flight plan, and exercise the area you changed. For frontend changes, open `http://localhost:5150` in a regular browser as well as using the desktop window.
+For frontend changes, run `npm run build`, `npx playwright install chromium`, and `npm test` from `frontend/`. Browser tests serve production assets and mock backend responses for flight import, navigation, autosave, unavailable data, and tablet layouts. Also run the app, load a real flight plan, and exercise the changed area in the desktop window and a LAN browser; browser tests do not exercise SimConnect, external providers, native PDF printing, or WebView2.
 
 ## Style
 
-Match the code around what you're changing. This codebase leans on thorough explanatory comments — the *why*, not just the *what* — and keeps to the existing naming and formatting. New frontend code should stay framework-free vanilla JS/CSS.
+Use React components and strict TypeScript for new frontend UI. Keep backend behavior in the existing .NET host. The migration is incremental: the React shell, dashboard, initialization form, and status bar are typed components; existing EFL, tracker, dispatch, documents, settings and wizard renderers remain JavaScript in `operations.js`, mounted into dedicated React-owned containers. The adapter publishes navigation and app settings events without letting operational code modify dashboard children. Move these remaining views into typed React components as they are refactored; do not add more DOM rendering to the adapter.
 
 ## Submitting a change
 

@@ -23,6 +23,52 @@ internal sealed class SimConnectClient : IDisposable
 
     private enum Definitions { FlightData }
     private enum Requests { FlightData }
+    private enum ControlEvents { Pushback, TugSpeed, TugHeading, Jetway, Stairs, Baggage, Fuel, Catering, Power }
+    private enum ControlGroups { Priority }
+    private readonly System.Collections.Concurrent.ConcurrentQueue<(TaskCompletionSource<bool> Result, DateTime Deadline, string Action, double Value)> _commands = new();
+    private readonly System.Windows.Forms.Timer _commandTimer;
+    private bool _canPushback;
+    private bool _onGround;
+    private double _groundSpeed;
+    private DateTime _lastFlightData;
+    private DateTime _lastPushbackCommand;
+
+    public Task<bool> TogglePushbackAsync() => CommandPushbackAsync("toggle", 0);
+
+    public Task<bool> CommandPushbackAsync(string action, double value)
+    {
+        var result = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _commands.Enqueue((result, DateTime.UtcNow.AddSeconds(3), action, value));
+        return result.Task.WaitAsync(TimeSpan.FromSeconds(4));
+    }
+
+    private void ProcessCommands()
+    {
+        while (_commands.TryDequeue(out var command))
+        {
+            if (DateTime.UtcNow > command.Deadline || !(command.Action == "stop" ? _onGround : _canPushback && (command.Action is "toggle" or "heading" or "move" || _groundSpeed < 0.5)) || _simConnect is null ||
+                (DateTime.UtcNow - _lastFlightData).TotalSeconds > 3 || (command.Action != "stop" && (DateTime.UtcNow - _lastPushbackCommand).TotalMilliseconds < 300))
+            { command.Result.TrySetResult(false); continue; }
+            try
+            {
+                var eventId = command.Action switch
+                {
+                    "toggle" => ControlEvents.Pushback, "heading" => ControlEvents.TugHeading,
+                    "jetway" => ControlEvents.Jetway, "stairs" => ControlEvents.Stairs,
+                    "baggage" => ControlEvents.Baggage, "fuel" => ControlEvents.Fuel,
+                    "catering" => ControlEvents.Catering, "power" => ControlEvents.Power,
+                    "move" or "stop" => ControlEvents.TugSpeed,
+                    _ => throw new ArgumentException("Unknown ground command")
+                };
+                var parameter = command.Action == "heading" ? (uint)(command.Value / 360d * uint.MaxValue) : command.Action == "move" ? unchecked((uint)(int)command.Value) : 0u;
+                _simConnect.TransmitClientEvent(SimConnect.SIMCONNECT_OBJECT_ID_USER, eventId, parameter,
+                    (ControlGroups)SimConnect.SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+                _lastPushbackCommand = DateTime.UtcNow;
+                command.Result.TrySetResult(true);
+            }
+            catch (COMException) { command.Result.TrySetResult(false); }
+        }
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct FlightData
@@ -59,6 +105,9 @@ internal sealed class SimConnectClient : IDisposable
     public SimConnectClient()
     {
         _window = new MessageWindow(this);
+        _commandTimer = new System.Windows.Forms.Timer { Interval = 100 };
+        _commandTimer.Tick += (_, _) => ProcessCommands();
+        _commandTimer.Start();
         _reconnectTimer = new System.Windows.Forms.Timer { Interval = ReconnectIntervalMs };
         _reconnectTimer.Tick += (_, _) => TryConnect();
         _reconnectTimer.Start();
@@ -72,6 +121,15 @@ internal sealed class SimConnectClient : IDisposable
         try
         {
             var sc = new SimConnect(AppName, _window.Handle, WM_USER_SIMCONNECT, null, 0);
+            sc.MapClientEventToSimEvent(ControlEvents.Pushback, "TOGGLE_PUSHBACK");
+            sc.MapClientEventToSimEvent(ControlEvents.Jetway, "TOGGLE_JETWAY");
+            sc.MapClientEventToSimEvent(ControlEvents.Stairs, "TOGGLE_RAMPTRUCK");
+            sc.MapClientEventToSimEvent(ControlEvents.Baggage, "REQUEST_LUGGAGE");
+            sc.MapClientEventToSimEvent(ControlEvents.Fuel, "REQUEST_FUEL_KEY");
+            sc.MapClientEventToSimEvent(ControlEvents.Catering, "REQUEST_CATERING");
+            sc.MapClientEventToSimEvent(ControlEvents.Power, "REQUEST_POWER_SUPPLY");
+            sc.MapClientEventToSimEvent(ControlEvents.TugSpeed, "TUG_SPEED");
+            sc.MapClientEventToSimEvent(ControlEvents.TugHeading, "TUG_HEADING");
             sc.OnRecvOpen += (_, _) => Connected?.Invoke();
             sc.OnRecvQuit += (_, _) => HandleDisconnect();
             sc.OnRecvException += (_, _) => { };
@@ -147,6 +205,10 @@ internal sealed class SimConnectClient : IDisposable
     {
         if ((Requests)data.dwRequestID != Requests.FlightData) return;
         var value = (FlightData)data.dwData[0];
+        _lastFlightData = DateTime.UtcNow;
+        _onGround = value.OnGround != 0;
+        _groundSpeed = value.GroundSpeedKts;
+        _canPushback = value.OnGround != 0 && value.GroundSpeedKts < 3;
 
         FlightStateUpdated?.Invoke(new SimFlightState(
             Latitude: value.Latitude,
@@ -197,6 +259,9 @@ internal sealed class SimConnectClient : IDisposable
 
     public void Dispose()
     {
+        _commandTimer.Stop();
+        _commandTimer.Dispose();
+        while (_commands.TryDequeue(out var pending)) pending.Result.TrySetResult(false);
         _reconnectTimer.Stop();
         _reconnectTimer.Dispose();
         _simConnect?.Dispose();

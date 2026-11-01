@@ -37,6 +37,28 @@
     <SelfContained>true</SelfContained>
   </PropertyGroup>
 
+  <!-- The frontend remains static files at runtime, served by the same desktop/LAN host.
+       Rebuild only when frontend source changes. SkipFrontendBuild is useful when packaging
+       already-built assets on a machine without Node. -->
+  <ItemGroup>
+    <FrontendSource Include="..\..\frontend\src\**;..\..\frontend\index.html;..\..\frontend\package.json;..\..\frontend\package-lock.json;..\..\frontend\vite.config.ts;..\..\frontend\tsconfig.json" />
+  </ItemGroup>
+  <Target Name="BuildReactFrontend" BeforeTargets="PrepareForBuild"
+          Condition="'$(SkipFrontendBuild)' != 'true'"
+          Inputs="@(FrontendSource)" Outputs="$(MSBuildProjectDirectory)\wwwroot\index.html">
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)\..\..\frontend" Command="npm ci --no-audit --no-fund" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)\..\..\frontend" Command="npm run build" />
+  </Target>
+  <!-- SDK globs are evaluated before Vite replaces hashed bundles. Refresh from item
+       metadata rather than a disk glob, so deleted bundle names are removed as well. -->
+  <Target Name="RefreshFrontendContent" BeforeTargets="ResolveProjectStaticWebAssets;AssignTargetPaths"
+          DependsOnTargets="BuildReactFrontend">
+    <ItemGroup>
+      <Content Remove="@(Content)" Condition="'%(Content.RelativeDir)' == 'wwwroot\web-assets\' Or '%(Content.RelativeDir)' == 'wwwroot/web-assets/'" />
+      <Content Include="wwwroot\web-assets\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <!-- The SDK's default wwwroot Content items only copy on publish, not a plain build -
          force them to copy on build too so `dotnet build` + running the exe directly works
@@ -107,4 +129,7 @@
     <Delete Files="@(_UnneededOutputFile)" Condition="Exists('%(_UnneededOutputFile.Identity)')" />
   </Target>
 
+  <Target Name="RemoveUnusedWpfReference" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup><Reference Remove="@(Reference)" Condition="'%(Reference.Filename)' == 'Microsoft.Web.WebView2.Wpf'" /></ItemGroup>
+  </Target>
 </Project>

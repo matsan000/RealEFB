@@ -1,0 +1,245 @@
+/* Glass is a shared surface treatment, not a blur on every component.
+   Only stationary shell chrome blurs; cards and moving-map overlays use tinted fills. */
+:root {
+  --glass-surface: linear-gradient(135deg, #b9e4ff09, #ffffff02), #142335cc;
+  --glass-raised: linear-gradient(135deg, #c1e7ff0b, #ffffff03), #1a2d40ed;
+  --glass-input: #07132166;
+  --glass-edge: #b5d7f025;
+  --glass-highlight: inset 0 1px 0 #e0f5ff10;
+  --glass-shadow: 0 12px 32px -16px #0007;
+  --view-surface: var(--glass-surface);
+  --view-raised: var(--glass-raised);
+  --view-input: var(--glass-input);
+  --view-edge: var(--glass-edge);
+  --view-text: #e3effb;
+  --view-muted: #9eb4cb;
+  --view-accent: #83e2c8;
+  --view-accent-fill: #6ce5c014;
+  --view-readonly: #b6d7f009;
+}
+
+.workspace-ready .app-content {
+  background: radial-gradient(ellipse at 80% 0, #2a69791a, transparent 55%), linear-gradient(140deg, #0c1725dc, #09111ce6);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.app-header { background: #0d1722e8; }
+.navigation-rail { background: #0e1925e8; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-header, .navigation-rail { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+}
+
+/* Match every tool to the dashboard's rounded, lightly reflective surfaces. */
+.efb-app :is(.flight-card, .workspace-card, .settings-section, .doc-list-item, .dispatch-log-card, .ls-card, .init-card, .tracker-card, .tracker-hud, .tracker-layer-menu) {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+  border-radius: 17px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.efb-app .flight-card { border-radius: 22px; }
+.efb-app .workspace-card:hover, .efb-app .doc-list-item:hover { background: var(--glass-raised); border-color: #91e3d14a; }
+.efb-app .workspace-card::before { background: radial-gradient(circle, var(--tool-tint), transparent 70%); filter: none; }
+.efb-app .init-card { border-radius: 24px; }
+.app-content #detail-screen { background: transparent; }
+.app-content #detail-screen:has(.efl-sheet) {
+  --efl-blue: var(--view-accent);
+  --efl-blue-deep: var(--view-text);
+  --efl-banner: transparent;
+  --efl-text: var(--view-text);
+  --efl-muted: var(--view-muted);
+  --efl-line: var(--view-edge);
+  --efl-field-border: var(--view-edge);
+  --efl-tab-idle: var(--view-muted);
+  background: transparent;
+  padding-top: 22px;
+}
+.app-content #detail-screen .efl-sheet {
+  --efl-blue: var(--view-accent);
+  --efl-blue-deep: var(--view-text);
+  --efl-text: var(--view-text);
+  --efl-muted: var(--view-muted);
+  --efl-line: var(--view-edge);
+  background: transparent;
+  color: var(--view-text);
+  margin-inline: 0;
+}
+body[data-efl-theme="light"] #detail-screen:has(.efl-sheet) {
+  --view-surface: linear-gradient(135deg, #ffffffeb, #ebf4fbe8);
+  --view-raised: #f5faffee;
+  --view-input: #ffffffbb;
+  --view-edge: #a6bdd363;
+  --view-text: #17334e;
+  --view-muted: #4e6982;
+  --view-accent: #176d78;
+  --view-accent-fill: #167c8510;
+  --view-readonly: #b8cede24;
+}
+#detail-screen .efl-header {
+  background: var(--view-surface);
+  color: var(--view-text);
+  border: 1px solid var(--view-edge);
+  border-radius: 15px;
+  box-shadow: var(--glass-highlight);
+  margin: 0 0 20px;
+  padding: 18px 22px;
+}
+#detail-screen .efl-header :is(.efl-callsign, .efl-route) { color: var(--view-accent); }
+#detail-screen .efl-header .efl-meta { color: var(--view-muted); font-size: 12px; }
+#detail-screen .efl-theme-btn { background: var(--view-input); border-color: var(--view-edge); color: var(--view-accent); }
+#detail-screen .efl-tab-content { padding-inline: 0; }
+#detail-screen .efl-section-title {
+  background: var(--view-surface);
+  color: var(--view-accent);
+  border: 1px solid var(--view-edge);
+  border-radius: 11px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  padding: 13px 18px;
+  margin-inline: 0;
+}
+#detail-screen .fuel-grid { padding: 20px; background: var(--view-surface); border: 1px solid var(--view-edge); border-radius: 14px; margin-bottom: 20px; gap: 20px 24px; }
+#detail-screen :is(.fuel-label, .fuel-times-note, .wp-row-label, .wp-col-label, .fmc-label, .fmc-impacts-label, .fmc-info-header) { color: var(--view-muted); }
+#detail-screen :is(.fuel-box, .delay-time-input, .delay-reason-input, .fmc-table input, .fmc-notes-field textarea, .wp-input-clear-row input) {
+  background: var(--view-input);
+  border: 1px solid var(--view-edge);
+  border-radius: 10px;
+  color: var(--view-text);
+  box-shadow: inset 0 1px 2px #00000009;
+}
+#detail-screen .fuel-box input { color: var(--view-text); background: transparent; }
+#detail-screen :is(.fuel-unit, .fmc-static, .fmc-arpt, .wp-static, .wp-card-title-time, .fmc-impacts-value) { color: var(--view-text); }
+#detail-screen :is(.fuel-box-readonly, .wp-input-clear-row input[readonly]) { background: var(--view-readonly); color: var(--view-muted); }
+#detail-screen :is(input, textarea):focus { border-color: var(--view-accent); outline: none; box-shadow: 0 0 0 3px var(--view-accent-fill); }
+#detail-screen .fuel-box:focus-within { border-color: var(--view-accent); box-shadow: 0 0 0 3px var(--view-accent-fill); }
+#detail-screen :is(.fuel-sign-toggle, .fuel-choice-toggle, .fmc-impact-toggle, .fmc-copy-btn) { background: var(--view-input); border-color: var(--view-edge); border-radius: 9px; }
+#detail-screen :is(.fuel-sign-opt, .fuel-choice-opt, .fmc-impact-toggle-opt):not(.selected) { color: var(--view-muted); }
+#detail-screen :is(.fuel-sign-opt, .fuel-choice-opt, .fmc-impact-toggle-opt).selected { background: var(--view-accent-fill); color: var(--view-accent); box-shadow: inset 0 0 0 1px var(--view-edge); }
+#detail-screen .fmc-table { background: var(--view-surface); border-radius: 14px; overflow: hidden; border-collapse: separate; border-spacing: 0; border: 1px solid var(--view-edge); }
+#detail-screen .fmc-table thead th { background: var(--view-accent-fill); color: var(--view-accent); padding: 14px 12px; border-bottom: 1px solid var(--view-edge); }
+#detail-screen .fmc-table td { border-color: var(--view-edge); padding: 9px 12px; }
+#detail-screen .fmc-row-highlight { background: var(--view-accent-fill); }
+#detail-screen .fmc-row-highlight :is(.fmc-label, .fmc-static) { color: var(--view-accent); }
+#detail-screen :is(.fmc-steps, .fmc-info-panel, .fmc-info-value, .fmc-impacts, .fmc-atis-box, .wp-card, .wx-raw, .notam-group) {
+  background: var(--view-surface);
+  color: var(--view-text);
+  border: 1px solid var(--view-edge);
+  border-radius: 13px;
+  box-shadow: var(--glass-highlight);
+}
+#detail-screen :is(.fmc-info-value, .fmc-info-panel, .fmc-impacts, .fmc-steps) { padding: 15px; }
+#detail-screen .fmc-impacts-row { border-color: var(--view-edge); }
+#detail-screen .fmc-atis-text { color: var(--view-text); }
+#detail-screen .fmc-atis-box { padding: 16px 18px; }
+#detail-screen :is(.wp-card-title, .notam-group-title) { background: transparent; color: var(--view-text); border-color: var(--view-edge); padding: 17px 18px; border-radius: 13px 13px 0 0; font-family: var(--font-display); }
+#detail-screen .wp-card-grid { padding: 18px; }
+#detail-screen .wp-card-title-wx { color: var(--view-muted); }
+#detail-screen .wp-clear-btn { background: var(--view-accent-fill); color: var(--view-accent); }
+#detail-screen :is(.wx-section-title, .wx-airport-heading, .wx-fir-heading, .notam-item-id) { color: var(--view-accent); }
+#detail-screen .wx-raw { padding: 18px; line-height: 1.9; }
+#detail-screen .wx-sigmet { background: #d7974220; border-color: #dda35050; border-radius: 12px; color: var(--view-text); }
+#detail-screen .notam-item { border-color: var(--view-edge); color: var(--view-text); content-visibility: auto; contain-intrinsic-size: auto 140px; }
+#detail-screen .notam-group-count { background: var(--view-accent-fill); color: var(--view-accent); border-radius: 20px; }
+#detail-screen .efl-sheet .coming-soon { color: var(--view-muted); }
+
+.efb-app .efl-tabbar { background: #101e2ef5; border: 1px solid var(--glass-edge); border-bottom: 0; border-radius: 16px 16px 0 0; box-shadow: 0 -8px 24px #00000016; color: #a8bed4; }
+.efb-app .efl-tabbar .efl-tab-btn { color: #9bb3ca; }
+.efb-app .efl-tabbar .efl-tab-btn:hover { color: #d2e7f7; background: #ffffff08; }
+.efb-app .efl-tabbar .efl-tab-btn.selected { background: #6ce5c014; color: #8ce9cd; }
+.efb-app .efl-home-btn { color: #8ce9cd; background: #6ce5c016; border: 1px solid #6ce5c025; box-shadow: none; }
+.efb-app :is(.efl-save-bar, .wx-pager) { background: #152638f5; border: 1px solid var(--glass-edge); color: #b7cce0; box-shadow: var(--glass-highlight), var(--glass-shadow); border-radius: 12px; }
+.efb-app :is(.wx-pager-btn, .wx-zoom-btn, .doc-back-btn) { background: #b9d6f00a; color: #a3dfd2; border: 1px solid var(--glass-edge); border-radius: 9px; }
+.efb-app .wx-pager-label { color: #c6d9e9; }
+.efb-app .wx-chart-wrap { background: #10203080; border-radius: 12px; border: 1px solid var(--glass-edge); }
+.efb-app .wx-chart-img { border-color: var(--glass-edge); }
+
+.efb-app .settings-section-header { background: transparent; color: var(--view-text); }
+.efb-app :is(.settings-label, .settings-toggle-label, .settings-section-title, .webapp-row-name) { color: #d1e4f5; }
+.efb-app :is(.settings-hint, .webapp-row-url, .doc-list-pages) { color: #9bb4ca; line-height: 1.7; }
+.efb-app :is(.settings-ip-row, .webapp-row, .dispatch-msg, .dispatch-entry, .settings-segmented) { background: #0a192866; border: 1px solid var(--glass-edge); border-radius: 11px; }
+.efb-app .settings-row :is(input, select), .efb-app .settings-section-body :is(input:not([type="checkbox"]), select), .efb-app .settings-password-field input, .efb-app .dispatch-entry input {
+  background: var(--glass-input); color: #e0edf8; border: 1px solid var(--glass-edge); border-radius: 10px; min-height: 44px;
+}
+#detail-screen :is(#settings-port, #settings-simbrief-id, #settings-sayintentions-code) {
+  background: var(--glass-input); color: #e0edf8; border: 1px solid var(--glass-edge); border-radius: 10px; min-height: 44px;
+}
+#detail-screen :is(.settings-tab-bar, .settings-tab-panel, .settings-section) { max-width: 840px; width: 100%; margin-inline: auto; }
+.efb-app .settings-tab-btn.selected { border-color: #6ce5c03a; }
+.efb-app :is(.settings-tab-bar, .dispatch-actions) { background: #0b192477; border: 1px solid var(--glass-edge); border-radius: 13px; }
+.efb-app :is(.settings-tab-btn, .settings-segmented-btn) { color: #a8bfd5; }
+.efb-app :is(.settings-tab-btn, .settings-segmented-btn).selected { color: #88e4c9; background: #6ce5c014; border-radius: 9px; }
+.efb-app :is(.webapp-row-btn, .webapp-quickadd-btn, .wallpaper-photo-btn, .dispatch-print-btn) { background: #b9d6f00a; border: 1px solid var(--glass-edge); color: #b8d4ea; border-radius: 9px; }
+.efb-app .dispatch-log-card { padding: 20px; }
+.efb-app .dispatch-log { background: transparent; }
+.efb-app .dispatch-msg { padding: 16px; }
+.efb-app .dispatch-msg-meta { color: #7bcbb7; }
+.efb-app .dispatch-msg-body { color: #d4e4f1; line-height: 1.8; }
+.efb-app .dispatch-action-btn { background: #c4def20a; border: 1px solid var(--glass-edge); border-radius: 10px; color: #c4d9eb; }
+.efb-app .dispatch-action-btn:hover { background: #6ce5c012; border-color: #6ce5c040; color: #8be5ca; }
+.efb-app :is(.dispatch-entry-send, .ls-btn-accept, .ls-btn-efl, .log-flight-btn, .wizard-next-btn) { border: 1px solid #6ce5c038; background: #6ce5c021; color: #9aecd4; border-radius: 10px; }
+.efb-app .ls-btn-deny { background: #f59f9414; border: 1px solid #f59f9433; color: #ffb6ad; border-radius: 10px; }
+.efb-app :is(.ls-card-title, .ls-row-value, .ls-pax-total, .ls-cargo-row) { color: #dbedfa; }
+.efb-app :is(.ls-row-label, .ls-card-sub, .ls-card-edno) { color: #9ab3ca; }
+.efb-app :is(.ls-section, .ls-row, .ls-card-head, .ls-pax-row) { border-color: var(--glass-edge); }
+.efb-app .ls-status-accepted { color: #82e3c1; }
+.efb-app .ls-status-denied { color: #f4a9a3; }
+.efb-app .loadsheet-notif { background: var(--glass-raised); border: 1px solid #6ce5c03a; border-radius: 16px; box-shadow: var(--glass-shadow); }
+.efb-app .loadsheet-notif-icon { background: #6ce5c018; color: #8ae8cf; border-radius: 12px; }
+
+/* Opaque-enough map HUDs avoid recomputing a blurred map on each position update. */
+.efb-app :is(.tracker-card, .tracker-hud, .tracker-layer-menu) { background: #142538f2; }
+.efb-app .tracker-card { padding: 20px; }
+.efb-app .tracker-callsign { font-family: var(--font-display); color: #e0edf9; }
+.efb-app :is(.tracker-chip, .tracker-status-pill) { background: #6ce5c010; border: 1px solid #6ce5c020; border-radius: 20px; color: #a7d9cc; }
+.efb-app .tracker-ctrl-btn { background: #142538f2; border: 1px solid var(--glass-edge); border-radius: 11px; color: #b8d8eb; box-shadow: var(--glass-highlight); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.efb-app .tracker-ctrl-group { background: transparent; border: 0; box-shadow: none; gap: 6px; }
+.efb-app .tracker-layer-opt { color: #c2d6e8; border-radius: 8px; }
+.efb-app .tracker-layer-opt.selected { background: #6ce5c014; color: #8be3ca; }
+.efb-app .tracker-hud-item { border-color: var(--glass-edge); }
+.efb-app .tracker-hud-value { color: #e0f0fa; }
+.efb-app :is(.tracker-hud-label, .tracker-hud-unit, .tracker-card-meta, .tracker-apt-name) { color: #9ab5cd; }
+
+/* Body-level dialogs share the shell palette without introducing extra blur layers. */
+body[data-efl-theme] :is(.webapp-editor-overlay, .atis-modal-overlay, .delay-picker-overlay) {
+  background: #060f1be8;
+  color: #e3effb;
+  --efl-blue: #83e2c8;
+  --efl-text: #e3effb;
+  --efl-muted: #9eb4cb;
+  --efl-line: #b5d7f025;
+}
+body[data-efl-theme] :is(.webapp-editor, .atis-modal, .delay-picker-modal) { background: var(--glass-raised); border: 1px solid var(--glass-edge); border-radius: 20px; overflow: hidden; box-shadow: var(--glass-highlight), var(--glass-shadow); }
+body[data-efl-theme] :is(.atis-modal, .delay-picker-modal) { margin: 24px auto; width: min(1040px, calc(100% - 48px)); height: calc(100% - 48px); }
+body[data-efl-theme] :is(.webapp-editor-header, .atis-modal-header, .delay-picker-header) { background: #0b1a2b66; border-bottom: 1px solid var(--glass-edge); padding: 20px 22px; font-family: var(--font-display); }
+body[data-efl-theme] :is(.webapp-editor-label, .atis-field-label, .delay-picker-group-title) { background: transparent; color: #9ab8cc; font-size: 12px; }
+body[data-efl-theme] :is(.webapp-editor input, .atis-field input, .atis-field select, .delay-picker-search) { background: #07132199; border: 1px solid var(--glass-edge); color: #e3effb; border-radius: 9px; min-height: 44px; }
+body[data-efl-theme] :is(#webapp-editor-name, #webapp-editor-url) { background: #07132199; border: 1px solid var(--glass-edge); color: #e3effb; border-radius: 9px; min-height: 44px; }
+body[data-efl-theme] .atis-field input[readonly] { background: #ffffff06; color: #9eb4cb; }
+body[data-efl-theme] :is(.atis-field input, .atis-field select):focus { border-color: #83e2c8; }
+body[data-efl-theme] .delay-picker-item { background: #a6d6f008; border: 1px solid var(--glass-edge); border-radius: 10px; }
+body[data-efl-theme] .delay-picker-item.selected { background: #6ce5c014; border-color: #6ce5c055; }
+body[data-efl-theme] .delay-picker-item-desc { color: #c5d9e9; }
+body[data-efl-theme] :is(.webapp-editor-save, #atis-modal-done) { color: #9aecd4; }
+
+/* Transparent chrome becomes a solid, equivalent palette where blur is unavailable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-header, .navigation-rail { background: #101c2a; }
+}
+@media (max-width: 850px), (prefers-reduced-motion: reduce) {
+  .app-header, .navigation-rail { backdrop-filter: none; -webkit-backdrop-filter: none; background: #101c2af5; }
+  .efb-app :is(.flight-card, .workspace-card, .settings-section, .tracker-card, .tracker-hud) { box-shadow: var(--glass-highlight); }
+  .efb-app .flight-card::before { display: none; }
+}
+@media (max-width: 570px) {
+  .app-content #detail-screen { padding-inline: 14px; }
+  .app-content #detail-screen:has(.tracker-sheet) { padding: 0; }
+  #detail-screen .efl-header { padding: 14px; gap: 9px; }
+  #detail-screen .efl-meta { flex-basis: 100%; }
+  #detail-screen .fuel-grid { padding: 15px 12px; gap: 16px 12px; }
+  #detail-screen .fmc-table td { padding: 8px 5px; }
+  #detail-screen .wp-card-grid { padding: 12px 8px; }
+  body[data-efl-theme] :is(.atis-modal, .delay-picker-modal) { margin: 10px auto; width: calc(100% - 20px); height: calc(100% - 20px); border-radius: 14px; }
+  body[data-efl-theme] .atis-modal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px; }
+}
+

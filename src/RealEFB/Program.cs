@@ -491,12 +491,60 @@ internal static class Program
             }
         });
 
-        app.MapPost("/api/simbrief/import", async () =>
+        app.MapPost("/api/ground/control", async (GroundControlRequest request) =>
+        {
+            if (request.Service is not ("jetway" or "stairs" or "baggage" or "fuel" or "catering" or "power"))
+                return Results.BadRequest(new { error = "Unknown ground service." });
+            try
+            {
+                var sent = await simConnectClient.CommandPushbackAsync(request.Service, 0);
+                return sent ? Results.Ok(new { ok = true, message = "Request sent to simulator. Service availability depends on the parking stand and aircraft." })
+                    : Results.BadRequest(new { error = "Park the aircraft below 0.5 kt with a live simulator connection, then retry." });
+            }
+            catch (TimeoutException) { return Results.BadRequest(new { error = "Simulator timed out. Request expired." }); }
+        });
+
+        app.MapPost("/api/pushback/control", async (PushbackControlRequest request) =>
+        {
+            if (!double.IsFinite(request.Value) || request.Action is not ("toggle" or "stop" or "move" or "heading") ||
+                (request.Action == "move" && (Math.Abs(request.Value) > 3 || request.Value != Math.Truncate(request.Value))) ||
+                (request.Action == "heading" && (request.Value < 0 || request.Value >= 360)))
+                return Results.BadRequest(new { error = "Invalid pushback command." });
+            try
+            {
+                var sent = await simConnectClient.CommandPushbackAsync(request.Action, request.Value);
+                return sent ? Results.Ok(new { ok = true }) : Results.BadRequest(new { error = "Command unavailable. Check simulator connection, ground speed and aircraft state." });
+            }
+            catch (TimeoutException) { return Results.BadRequest(new { error = "Simulator timed out. Command expired." }); }
+        });
+
+        app.MapPost("/api/pushback/toggle", async () =>
         {
             try
             {
+                var sent = await simConnectClient.TogglePushbackAsync();
+                return sent ? Results.Ok(new { ok = true }) : Results.BadRequest(new { error = "Pushback unavailable. Connect an aircraft on the ground below 3 kt and wait before retrying." });
+            }
+            catch (TimeoutException) { return Results.BadRequest(new { error = "Simulator did not respond. No delayed command will be sent." }); }
+        });
+
+        app.MapPost("/api/simbrief/import", async (bool? automatic) =>
+        {
+            try
+            {
+                // Automatic callers share the loaded flight and never reset an active session.
+                lock (flightPlanLock)
+                {
+                    if (automatic == true && currentFlightPlan is not null)
+                        return Results.Ok(new { ok = true, flightPlan = currentFlightPlan });
+                }
                 var plan = await SimBriefClient.FetchLatestAsync(settings.SimBriefId);
-                lock (flightPlanLock) { currentFlightPlan = plan; }
+                lock (flightPlanLock)
+                {
+                    if (automatic == true && currentFlightPlan is not null)
+                        return Results.Ok(new { ok = true, flightPlan = currentFlightPlan });
+                    currentFlightPlan = plan;
+                }
                 lock (flightTrailLock) { flightTrail.Clear(); lastTrailSampleUtc = null; }
                 lock (loadsheetLock)
                 {
@@ -650,6 +698,17 @@ internal static class Program
             {
                 return Results.Problem($"Could not render page {index} of {file}: {ex.Message}", statusCode: 502);
             }
+        });
+        // Serves the full PDF file directly from the Documents folder for in-app viewing.
+        app.MapGet("/api/documents/file", (string file) =>
+        {
+            if (string.IsNullOrWhiteSpace(file) || Path.GetFileName(file) != file)
+                return Results.BadRequest(new { ok = false, error = "Invalid file name." });
+
+            var fullPath = Path.Combine(documentsFolder, file);
+            if (!File.Exists(fullPath)) return Results.NotFound();
+
+            return Results.File(fullPath, "application/pdf");
         });
 
         // Shared across every device on the LAN - saving from the desktop app makes the same
@@ -897,3 +956,7 @@ internal static class Program
         return (adults, children, infants);
     }
 }
+
+internal sealed record PushbackControlRequest(string Action, double Value);
+
+internal sealed record GroundControlRequest(string Service);

@@ -1,3 +1,4 @@
+import { transitionTo } from "./transitions";
 // Font Awesome Free, solid style - vendored locally, see wwwroot/vendor/fontawesome and its
 // <link>s in index.html. Returns the markup for one icon from its bare FA name ("gear", not
 // "fa-gear"). Size and color come entirely from whatever contains it (.tile-icon i,
@@ -37,8 +38,12 @@ const ICONS = {
 // Settings is deliberately not in here: it's always shown, since switching it off would leave
 // no way to switch anything back on.
 // gradient is each tile's own [top-left, bottom-right] pair for its icon (see .tile-icon in
-// style.css); color is the flat base the shaded fallback is derived from when there isn't one.
+// operations.css); color is the flat base the shaded fallback is derived from when there isn't one.
 const APPS = [
+  { id: "taxi", label: "Taxi Map", color: "#2ecb9b", kind: "native" },
+  { id: "performance", label: "Performance", color: "#0891b2", kind: "native" },
+  { id: "ground", label: "Ground Operations", color: "#0891b2", kind: "native" },
+  { id: "pushback", label: "Pushback", color: "#e28b33", kind: "native" },
   { id: "logbook", label: "EFL", color: "#f08c2e", gradient: ["#ffb454", "#e8590c"], kind: "native" },
   { id: "dispatch", label: "Dispatch", color: "#2f7dc2", gradient: ["#5aa9ff", "#1c5fd4"], kind: "native" },
   { id: "tracker", label: "Flight Tracker", color: "#12a37f", gradient: ["#3ddc97", "#0b7f6a"], kind: "native" },
@@ -339,19 +344,19 @@ const IATA_DELAY_CODES = [
   },
 ];
 
-// Built-in wallpapers - all CSS (see the Wallpaper section of style.css), so nothing to fetch or
+// Built-in wallpapers - all CSS (see the Wallpaper section of operations.css), so nothing to fetch or
 // license - plus "photo", the user's own picture (see applyWallpaper/wireWallpaperSection).
 // titlebar is the color along each one's top edge, which the desktop app paints its own title
 // bar to match (see syncTitleBar).
 const WALLPAPERS = [
-  { id: "sky", label: "Sky", titlebar: "#5c7086" },
-  { id: "horizon", label: "Horizon", titlebar: "#0e2340" },
-  { id: "clouds", label: "Clouds", titlebar: "#244b74" },
-  { id: "stratosphere", label: "Stratosphere", titlebar: "#03050b" },
-  { id: "sunset", label: "Sunset", titlebar: "#4a4356" },
-  { id: "dusk", label: "Dusk", titlebar: "#23263a" },
-  { id: "night", label: "Night", titlebar: "#0d1118" },
-  { id: "graphite", label: "Graphite", titlebar: "#4b5461" },
+  { id: "alpine", label: "Alpine lake", titlebar: "#293e60" },
+  { id: "forest", label: "Forest", titlebar: "#152d30" },
+  { id: "coast", label: "Coast", titlebar: "#527c91" },
+  { id: "aurora", label: "Aurora", titlebar: "#10182e", group: "elements" },
+  { id: "highlands", label: "Misty Highlands", titlebar: "#293c36" },
+  { id: "glacier", label: "Glacier Dawn", titlebar: "#192d51" },
+  { id: "tidal", label: "Tidal Glass", titlebar: "#092938", group: "elements" },
+  { id: "ember", label: "Ember Flow", titlebar: "#3a1b18", group: "elements" },
 ];
 const PHOTO_TITLEBAR_COLOR = "#111827";
 
@@ -360,8 +365,7 @@ const PHOTO_TITLEBAR_COLOR = "#111827";
 // and the app read as one surface. A no-op in a tablet's browser, which has no title bar of ours.
 function syncTitleBar() {
   if (!(window.chrome && window.chrome.webview)) return;
-  const id = document.body.dataset.wallpaper || "sky";
-  const color = id === "photo" ? PHOTO_TITLEBAR_COLOR : (WALLPAPERS.find((w) => w.id === id) || WALLPAPERS[0]).titlebar;
+  const color = "#121c27";
   window.chrome.webview.postMessage(JSON.stringify({ type: "titlebar", color }));
 }
 const WALLPAPER_KEY = "realefb.wallpaper";
@@ -379,9 +383,11 @@ function savedWallpaperPhoto() {
 // --wallpaper-photo is set whenever a photo is saved, not only while it's the one in use, so its
 // thumbnail in Settings can still show it.
 function applyWallpaper(id) {
+  if (id === "sky") id = "aurora";
+  if (id !== "photo" && !WALLPAPERS.some(w => w.id === id)) id = "alpine";
   const photo = savedWallpaperPhoto();
   document.body.style.setProperty("--wallpaper-photo", photo ? `url("${photo}")` : "none");
-  if (id === "photo" && !photo) id = "sky";
+  if (id === "photo" && !photo) id = "alpine";
   document.body.dataset.wallpaper = id;
   try {
     localStorage.setItem(WALLPAPER_KEY, id);
@@ -419,7 +425,7 @@ function resizePhotoToDataUrl(file, maxEdge = 1920, quality = 0.85) {
 // the exact CSS rules), and the last slot is the user's own photo - an "Add photo" slot until
 // one is picked. Per device, like the old swatches: each tablet keeps its own.
 function wallpaperSectionBodyHtml() {
-  const current = document.body.dataset.wallpaper || "sky";
+  const current = document.body.dataset.wallpaper || "alpine";
   const hasPhoto = !!savedWallpaperPhoto();
   const optionHtml = (id, label) => `
       <button type="button" class="wallpaper-option ${id === current ? "selected" : ""}" data-wallpaper="${id}" aria-label="${label}">
@@ -435,10 +441,9 @@ function wallpaperSectionBodyHtml() {
         <input type="file" accept="image/*" class="wallpaper-photo-input" />
       </label>`;
   return `
-    <div class="wallpaper-grid">
-      ${WALLPAPERS.map((w) => optionHtml(w.id, w.label)).join("")}
-      ${photoSlot}
-    </div>
+    <div class="wallpaper-collection"><h3>Nature</h3><div class="wallpaper-grid">${WALLPAPERS.filter(w => w.group !== "elements").map(w => optionHtml(w.id, w.label)).join("")}</div></div>
+    <div class="wallpaper-collection"><h3>Elements</h3><div class="wallpaper-grid">${WALLPAPERS.filter(w => w.group === "elements").map(w => optionHtml(w.id, w.label)).join("")}</div></div>
+    <div class="wallpaper-collection"><h3>Your photo</h3><div class="wallpaper-grid">${photoSlot}</div></div>
     <div class="wallpaper-photo-actions ${hasPhoto ? "" : "hidden"}">
       <label class="wallpaper-photo-btn">${faIcon("image")} Change photo<input type="file" accept="image/*" class="wallpaper-photo-input" /></label>
       <button type="button" class="wallpaper-photo-btn" id="wallpaper-photo-remove">${faIcon("trash-can")} Remove photo</button>
@@ -518,48 +523,23 @@ const homeScreen = document.getElementById("home-screen");
 const detailScreen = document.getElementById("detail-screen");
 const detailTitle = document.getElementById("detail-title");
 const detailBody = document.getElementById("detail-body");
-const tileGrid = document.getElementById("tile-grid");
+
 const homeButton = document.getElementById("home-button");
-const clockEl = document.getElementById("clock");
-const dateEl = document.getElementById("date");
-const connectionIcon = document.getElementById("connection-icon");
 
-function makeTileEl(tile) {
-  const el = document.createElement("div");
-  el.className = "tile";
-  el.id = `tile-${tile.id}`;
-  const [light, dark] = tile.gradient || [shadeColor(tile.color, 16), shadeColor(tile.color, -18)];
-  // A Website App with its own uploaded icon fills the whole face (tile-logo, same treatment
-  // the old fixed SimBrief tile used); one without shows its initials (see webAppToTile), and
-  // every built-in app its glyph from ICONS.
-  const iconHtml = tile.icon
-    ? `<img class="tile-logo" src="${escapeAttr(tile.icon)}" alt="" />`
-    : tile.monogram
-      ? `<span class="tile-monogram">${escapeAttr(tile.monogram)}</span>`
-      : ICONS[tile.id] || ICONS.webapp;
-  el.innerHTML = `
-    <span class="tile-icon" style="--icon-light:${light};--icon-dark:${dark}">${iconHtml}</span>
-    <span class="tile-label">${escapeAttr(tile.label)}</span>
-  `;
-  el.addEventListener("click", () => openDetail(tile));
-  return el;
-}
 
-// Actually (re)builds the tile grid DOM from a given enabled-apps/webApps pair - split out of
-// refreshTiles so the live poll below (refreshTilesIfChanged) can reuse the exact same build
-// logic without duplicating it.
+
+
+// React owns the dashboard. Publish settings instead of building a second tile tree.
 function buildTileGrid(enabledAppsObj, webApps) {
   enabledApps = enabledAppsObj;
-  tileGrid.innerHTML = "";
-  for (const app of APPS) {
-    if (appEnabled(app.id)) tileGrid.appendChild(makeTileEl(app));
-  }
-  for (const w of webApps) {
-    tileGrid.appendChild(makeTileEl(webAppToTile(w)));
-  }
-  tileGrid.appendChild(makeTileEl(SETTINGS_TILE));
+  window.dispatchEvent(new CustomEvent("realefb:apps", {
+    detail: { enabledApps: enabledAppsObj, webApps },
+  }));
 }
 
+function publishNavigation(id) {
+  window.dispatchEvent(new CustomEvent("realefb:navigate", { detail: { id } }));
+}
 // Last-seen {enabledApps, webApps} straight from the server, as JSON - lets refreshTilesIfChanged
 // (see below) tell "nothing's changed since last time" apart from "something changed", without
 // keeping its own separate deep-equal comparison of the two objects.
@@ -610,119 +590,23 @@ async function refreshTilesIfChanged() {
   buildTileGrid(s.enabledApps || {}, s.webApps || []);
 }
 
-const initScreen = document.getElementById("init-screen");
 const wizardScreen = document.getElementById("wizard-screen");
 
-// Gates the whole app behind two things, checked in order: the one-time setup wizard (see
-// startWizard()), then loading a SimBrief flight plan (see showInitScreen()) - so every tile/
-// tab that depends on either (EFL, Weather, NOTAMS, ...) has data to work with from the moment
-// someone starts using RealEFB, rather than
-// reaching a tile and discovering nothing's set up or loaded yet. The flight-plan check is
-// keyed off the server's own currentFlightPlan (null right after every RealEFB restart, since
-// that's in-memory only) - a tablet opening the app while the desktop already has a flight
-// loaded skips straight past it, since the server-side state it's asking about is already
-// there. Once initialized this session, no device needs to see that screen again until the
-// next full restart. The wizard is different - once completed it stays completed (saved to
-// disk) until the user deliberately re-runs it from Settings.
-async function startApp() {
-  let flightPlan = null;
-  let setupWizardCompleted = true;
-  try {
-    const [fpRes, settingsRes] = await Promise.all([
-      fetch("/api/simbrief/flightplan", { cache: "no-store" }),
-      fetch("/api/settings", { cache: "no-store" }),
-    ]);
-    if (fpRes.ok) ({ flightPlan } = await fpRes.json());
-    if (settingsRes.ok) ({ setupWizardCompleted } = await settingsRes.json());
-  } catch {
-    // Treated the same as "wizard already done, nothing loaded yet" - whichever screen this
-    // falls through to has its own button that will surface any real connectivity problem.
-  }
-
-  if (!setupWizardCompleted) {
-    startWizard();
-  } else if (flightPlan) {
-    showHomeScreen();
-  } else {
-    showInitScreen();
-  }
+// The OS launcher is always available. Account setup and flight import are opt-in apps,
+// so an empty flight plan, a fresh install or an unavailable provider never gates launch.
+function startApp() {
+  showHomeScreen();
 }
-
 function showHomeScreen() {
+  transitionTo("home", showHomeScreenNow);
+}
+function showHomeScreenNow() {
+  detailScreen.classList.add("hidden");
+  homeButton.classList.add("hidden");
+  publishNavigation("home");
   wizardScreen.classList.add("hidden");
-  initScreen.classList.add("hidden");
   homeScreen.classList.remove("hidden");
   refreshTiles();
-}
-
-async function showInitScreen() {
-  wizardScreen.classList.add("hidden");
-  homeScreen.classList.add("hidden");
-  initScreen.classList.remove("hidden");
-
-  const idInput = document.getElementById("init-simbrief-id");
-  // Prefills with whatever SimBrief ID was saved last time, if any - entered once, remembered
-  // after that, but this screen (and the explicit click) still happens every restart.
-  try {
-    const res = await fetch("/api/settings", { cache: "no-store" });
-    if (res.ok) {
-      const { simBriefId } = await res.json();
-      idInput.value = simBriefId || "";
-    }
-  } catch {
-    // Field just starts blank - not fatal, the user can still type one in.
-  }
-
-  document.getElementById("init-button").addEventListener("click", initializeFlight);
-  idInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") initializeFlight();
-  });
-}
-
-async function initializeFlight() {
-  const idInput = document.getElementById("init-simbrief-id");
-  const button = document.getElementById("init-button");
-  const status = document.getElementById("init-status");
-  const id = idInput.value.trim();
-
-  status.classList.remove("init-status-error");
-
-  if (!id) {
-    status.textContent = "Enter your SimBrief username or pilot ID.";
-    status.classList.add("init-status-error");
-    return;
-  }
-
-  status.textContent = "Loading...";
-  button.disabled = true;
-
-  try {
-    const saveRes = await fetch("/api/settings/simbrief", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ simBriefId: id }),
-    });
-    if (!saveRes.ok) throw new Error("Could not save the SimBrief ID - try again.");
-
-    const importRes = await fetch("/api/simbrief/import", { method: "POST" });
-    const importBody = await importRes.json().catch(() => ({}));
-    if (!importRes.ok || !importBody.ok) {
-      throw new Error(importBody.error || "Could not load that flight plan - check the ID and try again.");
-    }
-
-    // A freshly imported flight's own loadsheets (once they fire) are a genuinely new thing
-    // to notify about, even if the previous flight's loadsheets were already seen.
-    lastNotifiedPrelimKey = null;
-    lastNotifiedFinalKey = null;
-    hideLoadsheetNotification();
-
-    showHomeScreen();
-  } catch (err) {
-    status.textContent = err.message || "Could not load that flight plan - check the ID and try again.";
-    status.classList.add("init-status-error");
-  } finally {
-    button.disabled = false;
-  }
 }
 
 // Builds one toggle switch - shared by Settings and the setup wizard for the SayIntentions/
@@ -782,6 +666,7 @@ let wizardState = {};
 let settingsActiveTab = "realefb";
 
 async function startWizard() {
+  publishNavigation("wizard");
   wizardState = {
     simBriefId: "",
     port: 5150,
@@ -801,17 +686,16 @@ async function startWizard() {
     // Wizard still opens with blank defaults - nothing fatal about a failed prefill.
   }
 
-  homeScreen.classList.add("hidden");
-  initScreen.classList.add("hidden");
-  detailScreen.classList.add("hidden");
-  homeButton.classList.add("hidden");
-  wizardScreen.classList.remove("hidden");
-
-  document.getElementById("wizard-next").addEventListener("click", wizardNext);
-  document.getElementById("wizard-back").addEventListener("click", wizardBack);
-
-  wizardIndex = 0;
-  renderWizardStep();
+  transitionTo("wizard", () => {
+    homeScreen.classList.add("hidden");
+    detailScreen.classList.add("hidden");
+    homeButton.classList.add("hidden");
+    wizardScreen.classList.remove("hidden");
+    document.getElementById("wizard-next").onclick = wizardNext;
+    document.getElementById("wizard-back").onclick = wizardBack;
+    wizardIndex = 0;
+    renderWizardStep();
+  });
 }
 
 function renderWizardStep() {
@@ -831,7 +715,7 @@ function renderWizardStep() {
 
   if (stepId === "simbrief") {
     body.innerHTML = `
-      <h1 class="init-title">Welcome to RealEFB</h1>
+      <h1 class="init-title">Welcome to RealEFB OS</h1>
       <p class="init-subtitle">Let's get a few things set up. First, your SimBrief username or pilot ID - used to load your flight plans.</p>
       <input id="wizard-simbrief-id" type="text" placeholder="e.g. jdoe123" value="${escapeAttr(wizardState.simBriefId)}" />
     `;
@@ -856,7 +740,7 @@ function renderWizardStep() {
   } else if (stepId === "done") {
     body.innerHTML = `
       <h1 class="init-title">All set</h1>
-      <p class="init-subtitle">RealEFB is ready to go. Press Finish to continue.</p>
+      <p class="init-subtitle">RealEFB OS is ready to go. Press Finish to continue.</p>
     `;
   }
 
@@ -943,6 +827,13 @@ function openDetail(tile) {
     return;
   }
 
+  flushPendingSave();
+  transitionTo(tile.id, () => openDetailNow(tile));
+}
+
+function openDetailNow(tile) {
+  publishNavigation(tile.id);
+  wizardScreen.classList.add("hidden");
   detailTitle.textContent = tile.label;
   detailTitle.style.display = "";
   homeScreen.classList.add("hidden");
@@ -957,6 +848,10 @@ function openDetail(tile) {
     renderDocuments();
   } else if (tile.id === "dispatch") {
     renderDispatch();
+  } else if (tile.id === "performance" || tile.id === "pushback" || tile.id === "ground") {
+    detailBody.innerHTML = "";
+  } else if (tile.id === "taxi") {
+    renderFlightTracker(true);
   } else if (tile.id === "tracker") {
     renderFlightTracker();
   } else {
@@ -974,6 +869,9 @@ function openDetail(tile) {
 // callback, which itself has to self-cancel once the tab is navigated away from (see the DOM
 // presence check at the top of that function - there's no teardown hook elsewhere in app.js to
 // call this from, every other interval in this file just runs for the app's whole lifetime).
+let trackerTaxi = false;
+let trackerRenderId = 0;
+let trackerPositionPending = false;
 let trackerMap = null;
 let trackerInterval = null;
 let trackerFlightPlan = null;
@@ -1052,8 +950,11 @@ function setTrackerLayer(id) {
   }
 }
 
-async function renderFlightTracker() {
-  // Full-bleed like EFL's own sheet (#detail-screen:has(.tracker-sheet) in style.css cancels
+async function renderFlightTracker(taxi = false) {
+  const renderId = ++trackerRenderId;
+  trackerTaxi = taxi;
+  if (trackerMap) trackerMap.remove();
+  // Full-bleed like EFL's own sheet (#detail-screen:has(.tracker-sheet) in operations.css cancels
   // the screen's normal padding) - a moving map needs the whole screen, and its own header/HUD
   // overlay makes the generic detail-title redundant.
   detailTitle.style.display = "none";
@@ -1079,7 +980,9 @@ async function renderFlightTracker() {
     // Falls through to the empty state below.
   }
 
-  if (!flightPlan || flightPlan.originLat == null || flightPlan.destLat == null) {
+  if (renderId !== trackerRenderId || detailScreen.classList.contains("hidden")) return;
+  if (taxi && !flightPlan) flightPlan = { callsign: "Taxi Map", originIcao: "Departure", destIcao: "Arrival", navlog: [] };
+  if (!taxi && (!flightPlan || flightPlan.originLat == null || flightPlan.destLat == null)) {
     detailBody.innerHTML = `
       <div class="tracker-sheet">
         <p class="coming-soon">No SimBrief flight plan with route coordinates is loaded yet.</p>
@@ -1152,7 +1055,8 @@ async function renderFlightTracker() {
           <button type="button" id="tracker-zoom-in" class="tracker-ctrl-btn" title="Zoom in" aria-label="Zoom in">${faIcon("plus")}</button>
           <button type="button" id="tracker-zoom-out" class="tracker-ctrl-btn" title="Zoom out" aria-label="Zoom out">${faIcon("minus")}</button>
         </div>
-        <button type="button" id="tracker-center-btn" class="tracker-ctrl-btn tracker-center-btn active" title="Center on aircraft" aria-label="Center on aircraft">${faIcon("location-crosshairs")}</button>
+        <button type="button" id="tracker-center-btn" class="tracker-ctrl-btn tracker-center-btn active" title="Auto follow aircraft" aria-label="Auto follow aircraft" aria-pressed="true">${faIcon("location-crosshairs")}<span class="tracker-follow-label">Auto follow</span></button>
+        <button type="button" id="tracker-route-btn" class="tracker-ctrl-btn" aria-label="Show entire route" title="Show entire route">${faIcon("route")}</button>
       </div>
       <div class="tracker-layer-menu hidden" id="tracker-layer-menu">
         ${TRACKER_LAYERS.map(
@@ -1167,11 +1071,29 @@ async function renderFlightTracker() {
   `;
 
   document.getElementById("tracker-center-btn").addEventListener("click", () => {
-    trackerFollow = true;
-    document.getElementById("tracker-center-btn")?.classList.add("active");
-    if (trackerMap && trackerAircraftMarker) trackerMap.panTo(trackerAircraftMarker.getLatLng(), { animate: true });
+    trackerFollow = !trackerFollow;
+    syncTrackerFollow();
+    if (trackerFollow && trackerHasFix && trackerMap && trackerAircraftMarker) trackerMap.panTo(trackerAircraftMarker.getLatLng(), { animate: true });
   });
 
+  document.getElementById("tracker-route-btn").onclick = () => {
+    trackerFollow = false;
+    syncTrackerFollow();
+    const points = trackerRouteLatLngs(trackerFlightPlan);
+    if (points.length) trackerMap.fitBounds(L.latLngBounds(points), { padding: [70, 70] });
+  };
+  if (taxi) {
+    document.querySelector('.tracker-sheet')?.classList.add('taxi-sheet');
+    const card = document.querySelector('.tracker-card');
+    card.innerHTML = `<div class="taxi-title"><span>${faIcon("map-location-dot")} Taxi Map</span><span class="taxi-mode-pill">North Up</span><button id="taxi-airport-toggle" aria-label="Choose airport" aria-expanded="false">${faIcon("chevron-down")}</button></div><div class="taxi-airports" role="group" aria-label="Airport selection"><button id="taxi-departure" title="Center on departure"><span class="taxi-apt-tag">DEP</span><strong>${escapeAttr(flightPlan.originIcao)}</strong></button><button id="taxi-arrival" title="Center on arrival"><span class="taxi-apt-tag">ARR</span><strong>${escapeAttr(flightPlan.destIcao)}</strong></button></div><p class="taxi-map-note">Online surface map · simulator position</p>`;
+    for (const [id, lat, lon] of [['taxi-departure', flightPlan.originLat, flightPlan.originLon], ['taxi-arrival', flightPlan.destLat, flightPlan.destLon]]) {
+      const button = document.getElementById(id);
+      button.disabled = lat == null || lon == null;
+      button.onclick = () => { trackerFollow = false; syncTrackerFollow(); trackerMap.setView([lat, lon], 17); };
+    }
+    document.getElementById('tracker-route-btn').style.display = 'none';
+    document.querySelector('.tracker-hud-waiting span').textContent = 'Waiting for a valid simulator position';
+  }
   const layerMenu = document.getElementById("tracker-layer-menu");
   const layersBtn = document.getElementById("tracker-layers-btn");
   const setLayerMenuOpen = (open) => {
@@ -1192,7 +1114,7 @@ async function renderFlightTracker() {
   initTrackerMap(flightPlan);
   trackerMap?.on("click", () => setLayerMenuOpen(false));
 
-  trackerInterval = setInterval(updateTrackerPosition, 2000);
+  trackerInterval = setInterval(() => { if (!document.hidden) updateTrackerPosition(); }, taxi ? 1000 : 2000);
   updateTrackerPosition();
 }
 
@@ -1249,6 +1171,14 @@ function trackerSetAircraftHeading(headingDeg) {
   if (rotor) rotor.style.transform = `rotate(${headingDeg}deg)`;
 }
 
+function syncTrackerFollow() {
+  const button = document.getElementById("tracker-center-btn");
+  button?.classList.toggle("active", trackerFollow);
+  button?.setAttribute("aria-pressed", String(trackerFollow));
+  const label = button?.querySelector("span");
+  if (label) label.textContent = trackerFollow ? "Auto follow" : "Follow paused";
+}
+
 function initTrackerMap(flightPlan) {
   const mapEl = document.getElementById("tracker-map");
   if (!mapEl || typeof L === "undefined") return;
@@ -1256,7 +1186,7 @@ function initTrackerMap(flightPlan) {
   // Leaflet's own zoom control is replaced by the larger .tracker-controls buttons (see
   // renderFlightTracker) - its 30px squares were a small target on a tablet.
   trackerMap = L.map(mapEl, { zoomControl: false, attributionControl: true, worldCopyJump: true });
-  setTrackerLayer(savedTrackerLayerId());
+  setTrackerLayer(trackerTaxi ? "map" : savedTrackerLayerId());
 
   const routePts = trackerRouteLatLngs(flightPlan);
   if (routePts.length >= 2) {
@@ -1304,13 +1234,14 @@ function initTrackerMap(flightPlan) {
   trackerAircraftMarker = L.marker(routePts[0] || [0, 0], { icon: trackerAircraftIcon(), interactive: false, zIndexOffset: 1000 });
 
   const bounds = L.latLngBounds(routePts.length ? routePts : [[0, 0]]);
-  trackerMap.fitBounds(bounds, { padding: [40, 40] });
+  if (trackerTaxi && routePts.length) trackerMap.setView(routePts[0], 17);
+  else trackerMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 5 });
 
   // Panning manually breaks follow mode, same as every real moving-map EFB - the center button
   // re-enables it (see renderFlightTracker's click handler on #tracker-center-btn).
   trackerMap.on("dragstart", () => {
     trackerFollow = false;
-    document.getElementById("tracker-center-btn")?.classList.remove("active");
+    syncTrackerFollow();
   });
 }
 
@@ -1354,6 +1285,9 @@ async function updateTrackerPosition() {
     return;
   }
 
+  if (trackerPositionPending || detailScreen.classList.contains("hidden")) return;
+  const mapAtRequest = trackerMap;
+  trackerPositionPending = true;
   let connected = false;
   let state = null;
   try {
@@ -1363,7 +1297,9 @@ async function updateTrackerPosition() {
     // Treated the same as "not connected" below.
   }
 
-  const live = !!(connected && state);
+  trackerPositionPending = false;
+  if (trackerMap !== mapAtRequest || detailScreen.classList.contains("hidden")) return;
+  const live = !!(connected && state && Number.isFinite(state.latitude) && Number.isFinite(state.longitude) && Math.abs(state.latitude) <= 90 && Math.abs(state.longitude) <= 180 && !(state.latitude === 0 && state.longitude === 0));
   const pill = document.getElementById("tracker-status-pill");
   const pillText = document.getElementById("tracker-status-text");
   if (pill && pillText) {
@@ -1373,7 +1309,7 @@ async function updateTrackerPosition() {
   // No live position yet - the instrument strip shows a waiting message rather than a row of
   // dashes that just reads as broken.
   document.getElementById("tracker-hud")?.classList.toggle("is-waiting", !live);
-  if (!live) return;
+  if (!live) { if (trackerAircraftMarker && trackerMap?.hasLayer(trackerAircraftMarker)) trackerMap.removeLayer(trackerAircraftMarker); trackerHasFix = false; return; }
 
   const { latitude, longitude, headingDegreesTrue, groundSpeedKts, altitudeFt, verticalSpeedFpm } = state;
 
@@ -1412,7 +1348,7 @@ async function updateTrackerPosition() {
     trackerHasFix = true;
     trackerAircraftMarker.setLatLng(latLng);
     trackerAircraftMarker.addTo(trackerMap);
-    trackerMap.setView(latLng, 9);
+    if (trackerFollow) trackerMap.setView(latLng, trackerTaxi ? 18 : 9);
   } else {
     trackerAircraftMarker.setLatLng(latLng);
   }
@@ -1435,6 +1371,8 @@ async function renderDocuments() {
   detailTitle.style.display = "";
   detailBody.innerHTML = `<p class="coming-soon">Loading...</p>`;
 
+  const planResponse = await fetch("/api/simbrief/flightplan").catch(() => null);
+  const documentPlan = planResponse?.ok ? (await planResponse.json()).flightPlan : null;
   let documents = [];
   let folderPath = "";
   try {
@@ -1444,33 +1382,50 @@ async function renderDocuments() {
     // Falls through to the empty-state message below.
   }
 
-  if (!documents.length) {
-    detailBody.innerHTML = `
-      <p class="coming-soon">No PDFs found yet.</p>
-      <p class="coming-soon">Drop PDF files into the "RealEFB Documents" folder${
+  // Library layout: a "Flight" shelf for the SimBrief OFP (opened in the built-in viewer rather
+  // than a new browser tab) and a "Library" shelf for the user's own PDFs.
+  detailTitle.style.display = "none";
+  const flightCard = documentPlan?.pdfUrl ? `
+      <button class="doc-card doc-card-flight" id="doc-flight-pdf">
+        <span class="doc-thumb doc-thumb-ofp">${faIcon("file-pdf")}<b>OFP</b></span>
+        <span class="doc-card-text"><strong>SimBrief flight plan</strong><small>${escapeAttr(documentPlan.callsign || "")} \u00b7 ${escapeAttr(documentPlan.originIcao || "")} \u2192 ${escapeAttr(documentPlan.destIcao || "")}</small></span>
+      </button>` : `<p class="doc-shelf-empty">Your SimBrief flight plan appears here once a flight is imported.</p>`;
+  const library = documents.length
+    ? `<div class="doc-grid">${documents.map((d, i) => `
+        <button class="doc-card doc-list-item" data-index="${i}">
+          <span class="doc-thumb">${faIcon("file-lines")}<b>PDF</b></span>
+          <span class="doc-card-text"><strong class="doc-list-name">${escapeAttr(d.fileName.replace(/\.pdf$/i, ""))}</strong><small class="doc-list-pages">${d.pageCount} ${d.pageCount === 1 ? "page" : "pages"}</small></span>
+        </button>`).join("")}</div>`
+    : `<div class="doc-empty">${faIcon("folder-open")}<p class="coming-soon">No PDFs found yet.</p><p class="coming-soon">Drop PDF files into the "RealEFB Documents" folder${
         folderPath ? ` (<code class="doc-folder-path">${escapeAttr(folderPath)}</code>)` : ""
-      } in your Documents folder, then reopen this tab.</p>
-    `;
-    return;
-  }
+      } in your Documents folder, then reopen this tab.</p></div>`;
 
   detailBody.innerHTML = `
-    <div class="doc-list">
-      ${documents
-        .map(
-          (d, i) => `
-        <button class="doc-list-item" data-index="${i}">
-          <span class="doc-list-name">${escapeAttr(d.fileName)}</span>
-          <span class="doc-list-pages">${d.pageCount} ${d.pageCount === 1 ? "page" : "pages"}</span>
-        </button>`
-        )
-        .join("")}
-    </div>
-  `;
+    <div class="doc-library">
+      <header class="doc-library-header"><h1>Documents</h1><span>${documents.length + (documentPlan?.pdfUrl ? 1 : 0)} items</span></header>
+      <section class="doc-shelf"><h2>Flight</h2>${flightCard}</section>
+      <section class="doc-shelf"><h2>Library</h2>${library}</section>
+    </div>`;
 
-  for (const btn of detailBody.querySelectorAll(".doc-list-item")) {
-    btn.addEventListener("click", () => renderDocumentPages(documents[Number(btn.dataset.index)]));
-  }
+  document.getElementById("doc-flight-pdf")?.addEventListener("click", () =>
+    renderPdfViewer(`SimBrief flight plan \u00b7 ${documentPlan.callsign || ""}`, "/api/simbrief/pdf"));
+  for (const btn of detailBody.querySelectorAll(".doc-list-item")) { const doc = documents[Number(btn.dataset.index)]; btn.addEventListener("click", () => renderPdfViewer(doc.fileName, `/api/documents/file?file=${encodeURIComponent(doc.fileName)}`)); }
+}
+
+// Built-in viewer for a whole PDF served by our own backend - the WebView's PDF renderer inside
+// the app frame, so the document never leaves RealEFB for an external browser/tab.
+function renderPdfViewer(title, url) {
+  detailTitle.style.display = "none";
+  detailBody.innerHTML = `
+    <div class="doc-viewer">
+      <div class="doc-viewer-bar">
+        <button class="doc-back-btn" id="doc-back-btn">${faIcon("chevron-left")} Documents</button>
+        <strong>${escapeAttr(title)}</strong>
+        <span></span>
+      </div>
+      <iframe class="doc-viewer-frame" src="${escapeAttr(url)}#toolbar=1&navpanes=0&view=FitH" title="${escapeAttr(title)}"></iframe>
+    </div>`;
+  document.getElementById("doc-back-btn").addEventListener("click", renderDocuments);
 }
 
 function renderDocumentPages(doc) {
@@ -1967,8 +1922,8 @@ function showLoadsheetNotification(title) {
   if (!el) return;
   const titleEl = el.querySelector(".loadsheet-notif-title");
   if (titleEl) titleEl.textContent = title;
-  el.classList.remove("hidden");
-  playNotificationSound();
+  window.dispatchEvent(new CustomEvent("realefb:notification", { detail: { title, message: "Loadsheet received. Open Dispatch to review.", error: false, onOpen: () => el.click() } }));
+
 
   if (loadsheetNotifHideTimer) clearTimeout(loadsheetNotifHideTimer);
   loadsheetNotifHideTimer = setTimeout(hideLoadsheetNotification, 10000);
@@ -2170,46 +2125,24 @@ async function renderEfl() {
 
 function renderEflImportScreen() {
   detailBody.innerHTML = `
-    <div class="efl-import-screen">
-      <button id="efl-import-btn">Import latest SimBrief flight plan</button>
-      <p id="efl-import-status" class="settings-hint"></p>
+    <div class="efl-import-screen os-app-empty">
+      <span class="os-empty-app-icon">${faIcon("clipboard-list")}</span>
+      <h2>Your flight log starts here.</h2>
+      <p>Import a flight when you're ready. Your saved account will be used automatically.</p>
+      <button id="efl-import-btn">SimBrief settings ${faIcon("arrow-right")}</button>
     </div>
   `;
-  document.getElementById("efl-import-btn").addEventListener("click", () => importFlightPlan(renderEflLoaded));
+  document.getElementById("efl-import-btn").addEventListener("click", () => openDetail({ id: "settings", label: "Settings" }));
 }
-
-async function importFlightPlan(onSuccess) {
-  const btn = document.getElementById("efl-import-btn");
-  const status = document.getElementById("efl-import-status");
-  btn.disabled = true;
-  status.classList.remove("settings-error");
-  status.textContent = "Importing...";
-  try {
-    const res = await fetch("/api/simbrief/import", { method: "POST" });
-    const body = await res.json().catch(() => ({}));
-    if (res.ok && body.flightPlan) {
-      onSuccess(body.flightPlan);
-    } else {
-      status.textContent = body.error || "Could not import - try again.";
-      status.classList.add("settings-error");
-      btn.disabled = false;
-    }
-  } catch {
-    status.textContent = "Could not import - try again.";
-    status.classList.add("settings-error");
-    btn.disabled = false;
-  }
-}
-
-// EFL light/dark theme (see the "EFL dark mode" section of style.css). Per device, like the
+// EFL light/dark theme (see the "EFL dark mode" section of operations.css). Per device, like the
 // wallpaper - the right choice depends on the lighting where that particular screen is.
 const EFL_THEME_KEY = "realefb.eflTheme";
 
 function savedEflTheme() {
   try {
-    return localStorage.getItem(EFL_THEME_KEY) === "dark" ? "dark" : "light";
+    return localStorage.getItem(EFL_THEME_KEY) === "light" ? "light" : "dark";
   } catch {
-    return "light";
+    return "dark";
   }
 }
 
@@ -2253,7 +2186,7 @@ function renderEflLoaded(fp) {
         <span class="efl-callsign">${fp.callsign || "N/A"}</span>
         <span class="efl-route">${fp.originIcao} ${fp.destIcao}</span>
         <span class="efl-meta">${fmtDate(outDate)} ${fmtTime(outDate)} ${fmtTime(inDate)} ${fp.aircraftIcao}</span>
-        <button type="button" class="efl-theme-btn" id="efl-theme-btn"></button>
+        <button type="button" class="efl-theme-btn" id="efl-refresh-btn" aria-label="Refresh flight log">${faIcon("arrows-rotate")}</button><button type="button" class="efl-theme-btn" id="efl-theme-btn"></button>
       </div>
       <div class="efl-tab-content" id="efl-tab-content"></div>
     </div>
@@ -2269,6 +2202,7 @@ function renderEflLoaded(fp) {
   homeButton.classList.add("hidden");
   document.getElementById("efl-home-btn").addEventListener("click", goHome);
 
+  document.getElementById("efl-refresh-btn").onclick = () => { flushPendingSave(); renderEfl(); };
   applyEflTheme(savedEflTheme());
   document.getElementById("efl-theme-btn").addEventListener("click", () => {
     const next = document.body.dataset.eflTheme === "dark" ? "light" : "dark";
@@ -2324,12 +2258,15 @@ function scheduleAutoSave() {
   const saveFn = EFL_SAVE_HANDLERS[eflActiveTabId];
   if (!saveFn) return;
   clearTimeout(eflAutoSaveTimer);
-  eflAutoSaveTimer = setTimeout(saveFn, EFL_AUTOSAVE_DEBOUNCE_MS);
+  eflAutoSaveTimer = setTimeout(() => {
+    eflAutoSaveTimer = null;
+    saveFn();
+  }, EFL_AUTOSAVE_DEBOUNCE_MS);
 }
 
 function renderEflTab(content, tabId, fp) {
+  flushPendingSave();
   eflActiveTabId = tabId;
-  clearTimeout(eflAutoSaveTimer);
   const saveBar = document.getElementById("efl-save-bar");
   saveBar.classList.toggle("hidden", !EFL_SAVE_HANDLERS[tabId]);
   const saveStatus = document.getElementById("efl-save-status");
@@ -4416,8 +4353,9 @@ async function renderSettings() {
         .map(
           (i) => `
         <div class="settings-ip-row">
-          <span class="settings-ip-name">${i.name}</span>
-          <span class="settings-ip-url">http://${i.address}:${port}</span>
+          <span class="settings-ip-name">${escapeAttr(i.name)}</span>
+          <span class="settings-ip-url">${escapeAttr(`http://${i.address}:${port}`)}</span>
+          <button type="button" class="settings-copy-address" data-copy-address="${escapeAttr(`http://${i.address}:${port}`)}" aria-label="Copy ${escapeAttr(i.name)} address">${faIcon("copy")} <span aria-live="polite">Copy</span></button>
         </div>`
         )
         .join("")
@@ -4487,31 +4425,61 @@ async function renderSettings() {
   // Each multi-section tab keeps its topics as individually-collapsible cards, same as before;
   // Dispatch's tab has only the one card, so it's shown unwrapped rather than nested inside a
   // second "Dispatch" header that would just repeat the tab's own name.
-  const tabBarHtml = `
-    <div class="settings-tab-bar">
-      <button type="button" class="settings-tab-btn" data-tab="realefb">RealEFB</button>
-      <button type="button" class="settings-tab-btn" data-tab="apps">Apps</button>
-      <button type="button" class="settings-tab-btn" data-tab="dispatch">Dispatch</button>
-    </div>`;
+  const developerBody = `<p class="settings-hint">Developer tools for this device.</p><button id="developer-test-notification" class="settings-save-btn">Send test notification</button><p class="settings-hint">Sound and Do Not Disturb are available in Notification Center.</p>`;
+  const categories = [
 
-  const settingsTabs = {
-    realefb: `
-      ${settingsSectionHtml("background", "Wallpaper", backgroundBody)}
-      ${settingsSectionHtml("webserver", "Web Server", webServerBody)}
-      ${settingsSectionHtml("simbrief", "SimBrief", simBriefBody)}`,
-    apps: `
-      ${settingsSectionHtml("apps", "Apps", appsBody)}
-      ${settingsSectionHtml("webapps", "Website Apps", webAppsSectionBodyHtml())}`,
-    dispatch: dispatchBody,
-  };
-
-  detailBody.innerHTML = `
-    <button id="settings-run-wizard" class="settings-wizard-btn">Run Setup Wizard</button>
-    ${tabBarHtml}
-    ${Object.entries(settingsTabs)
-      .map(([id, html]) => `<div class="settings-tab-panel" data-tab-panel="${id}">${html}</div>`)
-      .join("")}
-  `;
+    ['simbrief','SimBrief account','plane','violet',simBriefBody],
+    ['background','Wallpaper','image','blue',backgroundBody],
+    ['webserver','Network & connection','wifi','mint',webServerBody],
+    ['apps','Home screen apps','table-cells-large','blue',appsBody],
+    ['webapps','Website apps','globe','violet',webAppsSectionBodyHtml()],
+    ['dispatch','Dispatch services','tower-broadcast','amber',dispatchBody],
+    ['appearance','Appearance','circle-half-stroke','blue',`<p class="settings-hint">Choose the appearance for RealEFB Settings on this device.</p><label class="settings-toggle-row"><span class="settings-toggle-label">Show local time alongside UTC</span><input id="show-local-time" type="checkbox" ${localStorage.getItem("realefb.showLocalTime") === "true" ? "checked" : ""}/></label><div class="appearance-picker"><button data-appearance="light"><span class="appearance-preview light"></span>Light</button><button data-appearance="dark"><span class="appearance-preview dark"></span>Dark</button></div>`],
+    ['developer','Developer mode','code','violet',developerBody],
+  ];
+  detailBody.innerHTML = `<div class="settings-native"><aside class="settings-list"><h2>Settings</h2><div class="settings-profile"><img src="/assets/brand/realefb-logo.png" alt=""/><div><strong>RealEFB OS</strong><small>Your flight workspace</small></div></div><p class="settings-group-label">PERSONAL & CONNECTIONS</p><nav aria-label="Settings categories">${categories.map(([id,label,icon,color],index) => `${index === 3 ? '<p class="settings-group-label">APPS & SERVICES</p>' : ''}<button class="settings-category" data-category="${id}"><span class="settings-category-icon ${color}">${faIcon(icon)}</span><span>${label}</span>${faIcon('chevron-right')}</button>`).join('')}<button id="settings-run-wizard" class="settings-setup-row">${faIcon('wand-magic-sparkles')} Setup assistant</button></nav></aside><section class="settings-detail">${categories.map(([id,label,,,body]) => `<div class="settings-detail-page hidden" data-category-page="${id}"><div class="settings-detail-heading"><span>REALEFB OS</span><h2>${label}</h2></div><div class="settings-detail-group" id="settings-section-${id}"><div class="settings-section-body">${body}</div></div></div>`).join('')}</section></div>`;
+  detailBody.querySelectorAll('[data-copy-address]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const label = button.querySelector('span');
+      const address = button.dataset.copyAddress;
+      button.disabled = true;
+      try {
+        let copied = false;
+        if (navigator.clipboard?.writeText) {
+          try { await navigator.clipboard.writeText(address); copied = true; } catch { /* HTTP tablets may require the selection fallback. */ }
+        }
+        if (!copied) {
+          const field = document.createElement('textarea');
+          field.value = address; field.setAttribute('readonly', '');
+          field.style.cssText = 'position:fixed;left:0;top:0;opacity:0;pointer-events:none;';
+          document.body.appendChild(field);
+          try { field.select(); copied = document.execCommand('copy'); }
+          finally { field.remove(); button.focus({ preventScroll: true }); }
+        }
+        label.textContent = copied ? 'Copied!' : 'Copy failed';
+      } catch { label.textContent = 'Copy failed'; }
+      finally {
+        button.disabled = false;
+        window.setTimeout(() => { if (label.isConnected) label.textContent = 'Copy'; }, 2000);
+      }
+    });
+  });
+  function selectCategory(id) {
+    detailBody.querySelectorAll('[data-category]').forEach(button => { button.classList.toggle('selected',button.dataset.category === id); button.setAttribute('aria-current',button.dataset.category === id ? 'page' : 'false'); });
+    detailBody.querySelectorAll('[data-category-page]').forEach(panel => panel.classList.toggle('hidden',panel.dataset.categoryPage !== id));
+  }
+  detailBody.querySelectorAll('[data-category]').forEach(button => button.onclick = () => selectCategory(button.dataset.category));
+  document.getElementById('show-local-time').onchange = event => {localStorage.setItem('realefb.showLocalTime',String(event.target.checked));window.dispatchEvent(new Event('realefb:clock-preference'));};
+  const appearance = localStorage.getItem('realefb.appearance') || 'light';
+  document.body.dataset.appearance = appearance;
+  function applyAppearance(value) {
+    document.body.dataset.appearance=value;localStorage.setItem('realefb.appearance',value);
+    detailBody.querySelectorAll('[data-appearance]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.appearance===value)));
+  }
+  detailBody.querySelectorAll('[data-appearance]').forEach(button=>button.onclick=()=>applyAppearance(button.dataset.appearance));
+  applyAppearance(appearance);
+  selectCategory('simbrief');
+  document.getElementById('developer-test-notification').onclick = () => window.dispatchEvent(new CustomEvent('realefb:notification', {detail:{title:'Test notification',message:'RealEFB OS notifications are working.',error:false}}));
 
   document.getElementById("settings-run-wizard").addEventListener("click", startWizard);
 
@@ -4881,67 +4849,10 @@ async function saveSayIntentions() {
 }
 
 function goHome() {
-  detailScreen.classList.add("hidden");
-  homeButton.classList.add("hidden");
-  homeScreen.classList.remove("hidden");
-  refreshTiles();
+  flushPendingSave();
+  showHomeScreen();
 }
-
-const statusbarLeft = document.querySelector(".statusbar-left");
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-// Always Zulu, never local sim time or the PC's own timezone-adjusted clock - the one time
-// standard that means the same thing regardless of which sim/aircraft/timezone is involved,
-// which is why real EFBs show it too. The status bar always shows one: the sim's own Zulu
-// clock while SimConnect is connected (see ZuluSeconds/ZuluYear/ZuluMonth/ZuluDay in
-// SimConnectClient.cs - paired together so the date always matches the time it's shown next
-// to), or this device's real-world UTC clock the rest of the time (before the sim's running,
-// or between flights) - never hidden outright the way it used to be.
-async function checkFlightState() {
-  statusbarLeft.classList.remove("hidden");
-
-  let connected = false;
-  let state = null;
-  try {
-    const res = await fetch("/api/flight/state", { cache: "no-store" });
-    if (res.ok) ({ connected, state } = await res.json());
-  } catch {
-    // Falls through to the real-world clock below, same as "not connected".
-  }
-
-  if (connected && state) {
-    const totalSeconds = Math.floor(state.zuluSeconds);
-    const hh = String(Math.floor(totalSeconds / 3600) % 24).padStart(2, "0");
-    const mm = String(Math.floor(totalSeconds / 60) % 60).padStart(2, "0");
-    clockEl.textContent = `${hh}:${mm}Z`;
-    dateEl.textContent = `${state.zuluDay} ${MONTH_NAMES[state.zuluMonth - 1] ?? ""} ${state.zuluYear}`;
-    return;
-  }
-
-  const now = new Date();
-  clockEl.textContent = `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}Z`;
-  dateEl.textContent = `${now.getUTCDate()} ${MONTH_NAMES[now.getUTCMonth()]} ${now.getUTCFullYear()}`;
-}
-
-// Pings the server's own /api/status endpoint so the status-bar indicator reflects
-// reality (the page loading at all doesn't guarantee the backend is still responsive)
-// rather than just always showing connected because the page happened to load once.
-async function checkServerStatus() {
-  try {
-    const res = await fetch("/api/status", { cache: "no-store" });
-    if (res.ok) {
-      connectionIcon.classList.remove("offline");
-      return;
-    }
-  } catch {
-    // fall through to offline state below
-  }
-  connectionIcon.classList.add("offline");
-}
-
-document.getElementById("wifi-icon").innerHTML = faIcon("wifi");
-document.getElementById("battery-icon").innerHTML = faIcon("battery-full");
-connectionIcon.innerHTML = faIcon("signal");
 
 homeButton.addEventListener("click", goHome);
 
@@ -4959,7 +4870,7 @@ document.getElementById("loadsheet-notification").addEventListener("click", () =
 // viewport shrinks - so a plain `bottom: 0` stays put behind where the keyboard now covers,
 // instead of riding up above it. window.visualViewport reports the real gap between the two,
 // which is exactly the keyboard's height; --keyboard-inset feeds that into both bars' `bottom`
-// (see .efl-tabbar/.efl-save-bar in style.css) so they stay above the keyboard instead of
+// (see .efl-tabbar/.efl-save-bar in operations.css) so they stay above the keyboard instead of
 // underneath it.
 function updateKeyboardInset() {
   const vv = window.visualViewport;
@@ -4993,15 +4904,46 @@ new MutationObserver((mutations) => {
 applyEflTheme(savedEflTheme());
 syncTitleBar();
 startApp();
-checkFlightState();
-setInterval(checkFlightState, 5000);
-
-checkServerStatus();
-setInterval(checkServerStatus, 10000);
 
 checkLoadsheetNotifications();
-setInterval(checkLoadsheetNotifications, 15000);
+setInterval(() => { if (!document.hidden) checkLoadsheetNotifications(); }, 15000);
 
 // See refreshTilesIfChanged's own comment - keeps every connected device's home screen (desktop
 // and any tablets) in sync with each other without requiring a manual refresh or re-navigation.
-setInterval(refreshTilesIfChanged, 3000);
+setInterval(() => { if (!document.hidden) refreshTilesIfChanged(); }, 3000);
+
+// A narrow boundary keeps all operational calculations, printing and host messages intact.
+// The shell only passes app IDs and validated settings records, never HTML.
+function flushPendingSave() {
+  if (eflAutoSaveTimer) {
+    clearTimeout(eflAutoSaveTimer);
+    eflAutoSaveTimer = null;
+    const save = EFL_SAVE_HANDLERS[eflActiveTabId];
+    if (save && !detailScreen.classList.contains("hidden") && detailBody.querySelector(".efl-sheet")) {
+      save();
+    }
+  }
+}
+
+export const bridge = {
+  navigate(id) {
+    if (id === "home") { goHome(); return; }
+    const tile = id === "settings" ? SETTINGS_TILE : APPS.find(app => app.id === id);
+    if (tile) openDetail(tile);
+  },
+  openWebsite(app) { openAppSite({ label: app.name, url: app.url }); },
+
+};
+
+
+
+
+// Server-side flight recording continues independently; hidden clients need no UI polling.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  checkLoadsheetNotifications();
+  refreshTilesIfChanged();
+});
+
+
+

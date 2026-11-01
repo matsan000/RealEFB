@@ -1,13 +1,21 @@
-/* Inter (UI) and B612 Mono (METAR/TAF/NOTAM/ATC text), downloaded from Google Fonts and vendored
+/* Manrope (headings), Inter (UI) and B612 Mono (METAR/TAF/NOTAM/ATC text), from Google Fonts and vendored
    here rather than linked from fonts.googleapis.com - same reasoning as vendor/leaflet and
    vendor/fontawesome: the EFB's own chrome should never depend on the internet being up, and a
-   tablet on the LAN may not have a route out at all. Both are SIL OFL 1.1 (see the OFL-*.txt
+   tablet on the LAN may not have a route out at all. All are SIL OFL 1.1 (see the OFL-*.txt
    files alongside). Only the latin + latin-ext subsets are kept - anything outside them (a
    Cyrillic place name in a NOTAM, say) just falls back to the next font in --font-sans/
    --font-mono's stack in style.css instead of rendering as a missing glyph.
 
    Inter is one variable file per subset covering every weight 300-800, so there's no separate
    file per weight to keep in sync. */
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("manrope-variable.ttf") format("truetype");
+}
 
 @font-face {
   font-family: "Inter";

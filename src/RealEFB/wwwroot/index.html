@@ -1,103 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>RealEFB</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="icon" href="favicon.ico" />
-  <!-- Vendored locally (v1.9.4), not CDN-linked - see wwwroot/vendor/leaflet - powers the Flight
-       Tracker tab's moving map. Live basemap tiles still come from an external tile server at
-       runtime (see initTrackerMap in app.js), same internet dependency the app already has for
-       SimBrief/weather. -->
-  <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
-  <!-- Font Awesome Free 7.3.1 (solid style only) and Inter/B612 Mono from Google Fonts - vendored
-       locally for the same reason as Leaflet above, minus the runtime internet dependency: every
-       icon and every line of text in the app comes straight from these files. Only the solid
-       style ships (fontawesome.min.css is the base every style needs on top of its own file) -
-       to use a regular/brands icon, copy that style's css + webfont over from the same
-       @fortawesome/fontawesome-free release and link it here too. -->
-  <link rel="stylesheet" href="vendor/fontawesome/css/fontawesome.min.css" />
-  <link rel="stylesheet" href="vendor/fontawesome/css/solid.min.css" />
-  <link rel="stylesheet" href="vendor/google-fonts/fonts.css" />
-  <link rel="stylesheet" href="css/style.css" />
-</head>
-<body>
-  <script>
-    // Applied before first paint so there's no flash of the default wallpaper - same logic as
-    // applyWallpaper() in app.js, which takes over once that loads.
-    try {
-      var wp = localStorage.getItem("realefb.wallpaper") || "sky";
-      var photo = localStorage.getItem("realefb.wallpaperPhoto");
-      if (photo) document.body.style.setProperty("--wallpaper-photo", 'url("' + photo + '")');
-      if (wp === "photo" && !photo) wp = "sky";
-      document.body.dataset.wallpaper = wp;
-    } catch {}
-  </script>
-
-  <div id="wallpaper"></div>
-  <div id="noise"></div>
-
-  <div id="statusbar">
-    <div class="statusbar-left hidden">
-      <span id="clock">--:--</span>
-      <span id="date"></span>
-    </div>
-    <div class="statusbar-right">
-      <span id="connection-icon" class="status-icon" title="Server connection"></span>
-      <span id="wifi-icon" class="status-icon"></span>
-      <span id="battery-group">
-        <span id="battery-icon" class="status-icon"></span>
-      </span>
-    </div>
-  </div>
-
-  <button id="loadsheet-notification" class="loadsheet-notif hidden" type="button">
-    <span class="loadsheet-notif-icon"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
-    <span class="loadsheet-notif-text">
-      <span class="loadsheet-notif-title">Loadsheet Received</span>
-      <span class="loadsheet-notif-sub">Tap to view Dispatch</span>
-    </span>
-  </button>
-
-  <main id="wizard-screen" class="hidden">
-    <div class="init-card wizard-card">
-      <p class="wizard-progress" id="wizard-progress"></p>
-      <div id="wizard-body"></div>
-      <p id="wizard-status" class="init-status"></p>
-      <div class="wizard-nav">
-        <button id="wizard-back" class="wizard-back-btn">Back</button>
-        <button id="wizard-next" class="wizard-next-btn">Next</button>
-      </div>
-    </div>
-  </main>
-
-  <main id="init-screen" class="hidden">
-    <div class="init-card">
-      <div class="init-icon"><i class="fa-solid fa-plane-departure" aria-hidden="true"></i></div>
-      <h1 class="init-title">Initialize Flight</h1>
-      <p class="init-subtitle">Enter your SimBrief username or pilot ID to load your latest flight plan.</p>
-      <input id="init-simbrief-id" type="text" placeholder="e.g. jdoe123" autocomplete="off" />
-      <button id="init-button">Initialize Flight</button>
-      <p id="init-status" class="init-status"></p>
-    </div>
-  </main>
-
-  <main id="home-screen" class="hidden">
-    <div class="tile-grid" id="tile-grid"></div>
-  </main>
-
-  <main id="detail-screen" class="hidden">
-    <h1 id="detail-title"></h1>
-    <div id="detail-body"></div>
-  </main>
-
-  <button id="home-button" class="hidden" aria-label="Back to Home">
-    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-    <span>Home</span>
-  </button>
-
-  <script src="js/flightlog-report.js"></script>
-  <script src="vendor/leaflet/leaflet.js"></script>
-  <script src="js/app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#101821" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RealEFB" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/assets/brand/realefb-logo.png" />
+    <title>RealEFB OS</title>
+    <link rel="preload" href="/vendor/google-fonts/manrope-variable.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="icon" type="image/png" href="/assets/brand/realefb-logo.png" />
+    <link rel="preload" as="image" href="/assets/brand/realefb-logo.png" />
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="/vendor/fontawesome/css/fontawesome.min.css" />
+    <link rel="stylesheet" href="/vendor/fontawesome/css/solid.min.css" />
+    <link rel="stylesheet" href="/vendor/google-fonts/fonts.css" />
+    <script type="module" crossorigin src="/web-assets/index-D2Gxxvro.js"></script>
+    <link rel="stylesheet" crossorigin href="/web-assets/index-2OhIhibm.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="/js/flightlog-report.js"></script>
+    <script src="/vendor/leaflet/leaflet.js"></script>
+  </body>
 </html>

@@ -23,6 +23,11 @@ internal sealed class MainForm : Form
     internal static MainForm? Instance { get; private set; }
 
     private readonly string _localUrl;
+    private readonly NotifyIcon _trayIcon;
+    private readonly ContextMenuStrip _trayMenu = new();
+    private bool _exitRequested;
+    private bool _trayHintShown;
+    private FormWindowState _restoreWindowState = FormWindowState.Maximized;
 
     private readonly WebView2 _webView = new() { Dock = DockStyle.Fill };
 
@@ -77,10 +82,34 @@ internal sealed class MainForm : Form
 
     internal MainForm(string localUrl)
     {
+        FormBorderStyle = FormBorderStyle.Sizable;
+        WindowState = FormWindowState.Maximized;
+        KeyPreview = true;
+
         _localUrl = localUrl;
 
         Text = "RealEFB";
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        _trayIcon = new NotifyIcon
+        {
+            Icon = Icon ?? SystemIcons.Application,
+            Text = "RealEFB — server running",
+            ContextMenuStrip = _trayMenu,
+            Visible = true,
+        };
+        _trayMenu.Items.Add("Open RealEFB", null, (_, _) => RestoreFromTray());
+        _trayMenu.Items.Add("Open in browser", null, (_, _) => OpenBrowser());
+        var hideItem = _trayMenu.Items.Add("Hide to system tray", null, (_, _) => HideToTray());
+        _trayMenu.Items.Add(new ToolStripSeparator());
+        _trayMenu.Items.Add("Exit RealEFB", null, (_, _) =>
+        {
+            _exitRequested = true;
+            Close();
+        });
+        _trayMenu.Opening += (_, _) => hideItem.Enabled = Visible;
+        _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
+        _trayIcon.BalloonTipClicked += (_, _) => RestoreFromTray();
+
         ClientSize = InitialClientSize();
         ApplyDpiScaledSizes();
         DpiChanged += (_, _) => ApplyDpiScaledSizes();
@@ -193,6 +222,66 @@ internal sealed class MainForm : Form
         };
 
         Instance = this;
+    }
+
+    private void HideToTray()
+    {
+        if (WindowState != FormWindowState.Minimized)
+            _restoreWindowState = WindowState;
+        Hide();
+        ShowInTaskbar = false;
+        if (!_trayHintShown)
+        {
+            _trayHintShown = true;
+            _trayIcon.ShowBalloonTip(4000, "RealEFB is still running",
+                $"Browser and tablet access remain available. Open {_localUrl} in your browser. Right-click the tray icon to reopen or exit.",
+                ToolTipIcon.Info);
+        }
+    }
+
+    private void RestoreFromTray()
+    {
+        ShowInTaskbar = true;
+        WindowState = _restoreWindowState;
+        Show();
+        BringToFront();
+        Activate();
+    }
+
+    private void OpenBrowser()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(_localUrl) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            _trayIcon.ShowBalloonTip(4000, "Could not open browser", $"Open {_localUrl} manually.", ToolTipIcon.Warning);
+        }
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        base.OnFormClosing(e);
+        // Keep the WinForms message loop, SimConnect and Kestrel alive on window close.
+        // Windows shutdown and explicit Exit must still terminate normally.
+        if (!_exitRequested && e.CloseReason == CloseReason.UserClosing)
+        {
+            e.Cancel = true;
+            HideToTray();
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            if (ReferenceEquals(Instance, this)) Instance = null;
+            _trayIcon.Visible = false;
+            _trayIcon.Dispose();
+            _trayMenu.Dispose();
+        }
+        base.Dispose(disposing);
     }
 
     // Windows 11's DWM attributes for the native title bar: dark mode (light caption buttons), then

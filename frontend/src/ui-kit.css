@@ -1,0 +1,220 @@
+/* RealEFB UI kit. Keep component geometry and interaction states in one place. */
+:root {
+ --font-sans:'Manrope','Segoe UI',sans-serif; --font-display:var(--font-sans);
+ --ui-bg:#090909; --ui-surface:#141414; --ui-raised:#202020; --ui-line:#ffffff15;
+ --ui-text:#eee; --ui-secondary:#aaa; --ui-muted:#858585; --ui-accent:#e8e8e5;
+ --ui-radius-sm:10px; --ui-radius:16px; --ui-radius-lg:22px;
+ --ui-space-1:4px; --ui-space-2:8px; --ui-space-3:12px; --ui-space-4:16px; --ui-space-6:24px;
+ --ui-content:1320px; --ui-control:44px;
+}
+body,button,input,select,textarea {font-family:var(--font-sans);font-variant-numeric:tabular-nums;}
+body {font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+button,input,select,textarea {font-size:14px;}
+button {touch-action:manipulation;}
+button:disabled {cursor:not-allowed;}
+input,textarea,select {user-select:text;}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible {outline:2px solid #7eb9ed!important;outline-offset:3px;}
+button:not(:disabled) {transition:background .16s ease,border-color .16s ease,color .16s ease,opacity .16s ease;}
+:where(h1,h2,h3,p,fieldset) {min-width:0;}
+:where(.utility-app,.settings-detail,.dispatch-sheet) {overflow-wrap:break-word;}
+:where(.utility-app,.settings-native,.dispatch-sheet,.doc-sheet) :is(button,input:not([type=checkbox],[type=radio],[type=range]),select) {min-height:var(--ui-control);}
+:where(.utility-app,.settings-native,.dispatch-sheet,.doc-sheet) :is(textarea,select,input:not([type=checkbox],[type=radio],[type=range])) {max-width:100%;}
+:where(.settings-save-btn,.dispatch-action-btn,.doc-back-btn,.wx-pager-btn,.settings-segmented-btn){border-radius:var(--ui-radius-sm)!important;font-size:13px!important;font-weight:600!important;}
+:where(.settings-detail-heading h2,.dispatch-log-card h2){font-weight:650;letter-spacing:-.5px;}
+:where(.settings-label,.settings-toggle-label){line-height:1.5;}
+:where(.settings-hint,.utility-note){line-height:1.7;}
+/* The app's tool workspaces share one neutral palette. */
+body .realefb-os.active-performance {background:var(--ui-bg)!important;color:var(--ui-text);}
+body .realefb-os.active-performance :is(#wallpaper,#noise){display:none!important;}
+body .realefb-os.active-performance .app-header{background:#111!important;border-bottom:1px solid var(--ui-line)!important;}
+body .realefb-os.active-performance .os-active-app{background:#242424;color:#eee;}
+body .realefb-os.active-performance .utility-app{padding:76px 32px 32px!important;background:var(--ui-bg)!important;color:var(--ui-text);}
+body .realefb-os.active-performance .utility-app>header{max-width:var(--ui-content);margin:0 auto 24px;}
+body .realefb-os.active-performance .utility-app>header .eyebrow{font-size:10px;letter-spacing:2px;color:var(--ui-muted);}
+body .realefb-os.active-performance .utility-app h1{font-size:30px;letter-spacing:-1px;font-weight:650;margin:10px 0;}
+body .realefb-os.active-performance .utility-app h1 i{color:var(--ui-text);font-size:25px;}
+.performance-workspace{max-width:var(--ui-content);margin:auto;}
+.performance-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;}
+.performance-workspace .performance-tabs{display:flex;gap:4px;margin:0;padding:5px;border:1px solid var(--ui-line);background:#191919;border-radius:12px;}
+.performance-workspace .performance-tabs button{display:flex;align-items:center;gap:10px;padding:10px 20px;border:0;border-radius:9px;background:transparent;color:var(--ui-secondary);min-height:44px;font-weight:600;}
+.performance-workspace .performance-tabs button[aria-selected=true]{background:var(--ui-accent);color:#111;}
+.performance-badge,.ui-eyebrow{font-size:10px;font-weight:650;letter-spacing:1.6px;color:var(--ui-muted);}
+.performance-workspace .performance-overview{display:grid;grid-template-columns:minmax(160px,1fr) 180px minmax(0,1.6fr);gap:28px;align-items:center;max-width:none;margin:0;background:var(--ui-surface);border:1px solid var(--ui-line);border-radius:var(--ui-radius);padding:24px;}
+.performance-overview .performance-airport h2{font-size:34px;font-weight:600;letter-spacing:-1px;margin:6px 0;line-height:1.15;}
+.performance-overview .performance-airport p{font-size:12px;color:var(--ui-secondary);margin:0;}
+.performance-overview .performance-runway{font-size:12px;color:var(--ui-secondary);}
+.performance-overview .performance-runway input{width:100%;margin:8px 0 0;background:#222;color:#eee;border:1px solid #ffffff18;border-radius:10px;padding:12px;font-size:18px;}
+.performance-weather{border-left:1px solid var(--ui-line);padding-left:28px;min-width:0;}
+.performance-overview .performance-metar{font-family:var(--font-mono);font-size:12px;color:#c6c6c6;line-height:1.8;margin:8px 0 0;overflow-wrap:anywhere;user-select:text;}
+.performance-sync{display:flex;align-items:baseline;gap:9px;font-size:12px;color:var(--ui-muted);margin:16px 0 24px;line-height:1.7;}
+.performance-workspace .performance-columns{max-width:none;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:start;}
+.performance-workspace .utility-panel{background:var(--ui-surface);border:1px solid var(--ui-line);border-radius:var(--ui-radius);padding:26px;min-width:0;}
+.ui-section-heading{margin-bottom:26px;}.ui-section-heading h2{font-size:22px;font-weight:600;letter-spacing:-.5px;margin:8px 0;}.ui-section-heading p{font-size:12px;color:var(--ui-muted);margin:0;}
+.performance-conditions fieldset{border:0;border-top:1px solid var(--ui-line);padding:24px 0 0;margin:0 0 28px;}
+.performance-conditions legend{font-size:12px;font-weight:650;color:#c6c6c6;padding:0 12px 0 0;}
+.performance-workspace .utility-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;}
+.performance-workspace .ui-field{display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.5;color:var(--ui-secondary);min-width:0;}
+.performance-workspace .ui-field>span{display:flex;background:#202020;border:1px solid #ffffff12;border-radius:10px;padding:0 12px;gap:8px;align-items:center;}
+.performance-workspace .ui-field input{min-height:48px;color:#eee;background:transparent;border:0;font-size:17px;padding:8px 0;min-width:0;width:100%;}
+.performance-workspace .ui-field>span:focus-within{border-color:#888;box-shadow:0 0 0 2px #ffffff12;}
+.performance-workspace .ui-field small{color:#888;font-size:11px;flex-shrink:0;}
+.performance-help{border-top:1px solid var(--ui-line);padding-top:16px;font-size:12px;color:var(--ui-muted);}.performance-help summary{cursor:pointer;min-height:32px;}.performance-help p{line-height:1.8;}
+.performance-results .wind-preview{display:flex;align-items:center;gap:22px;padding:4px 0 24px;border-bottom:1px solid var(--ui-line);color:#ddd;}.wind-preview svg{width:110px;height:110px;flex-shrink:0;}.wind-preview>div{display:flex;flex-direction:column;gap:5px;}.wind-preview strong{font-size:28px;font-weight:550;}.wind-preview span{font-size:12px;color:#aaa;}.wind-preview small{font-size:10px;color:#777;}
+.performance-workspace .utility-result{font-size:12px;padding:18px 0;border-color:var(--ui-line);align-items:baseline;color:var(--ui-secondary);}.performance-workspace .utility-result strong{font-size:13px;color:#eee;font-weight:650;max-width:55%;}
+.ui-inline-notice{padding:12px 14px;background:#b99d5e0c;border:1px solid #b99d5e28;border-radius:10px;color:#bdb090;font-size:12px;line-height:1.7;margin:20px 0;}
+.performance-workspace .utility-note{font-size:11px;color:var(--ui-muted);line-height:1.8;margin-top:20px;}
+.runway-usage{padding-top:20px;}.runway-usage>div:first-child{display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-bottom:10px;}.runway-usage [role=meter]{height:5px;border-radius:8px;background:#333;overflow:hidden;}.runway-usage [role=meter]>span{display:block;height:100%;background:#ccc;}
+/* Responsive shell: usable content widths instead of shrinking whole screens. */
+body .realefb-os .app-content{min-width:0;min-height:0;}
+body .realefb-os .utility-app{overscroll-behavior:contain;scroll-padding:70px 16px 24px;}
+body .realefb-os .ground-console>*{min-width:0;}
+body .realefb-os .ground-instruments{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+body .realefb-os .ground-instruments strong{overflow-wrap:anywhere;font-size:clamp(16px,2vw,24px);}
+body .realefb-os .os-desktop{max-width:1600px!important;margin:auto!important;}
+body .realefb-os .os-dock{max-width:calc(100vw - 24px)!important;}
+body .realefb-os .os-dock nav{max-width:100%;overflow-x:auto;overscroll-behavior:contain;scrollbar-width:none;}
+body .realefb-os .os-dock nav::-webkit-scrollbar{display:none;}
+body .realefb-os .os-dock nav button{flex-shrink:0;}
+@media(min-width:1600px){body .realefb-os .os-app-library{max-width:900px;}body .realefb-os .os-app-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;}}
+@media(max-width:1100px){.performance-workspace .performance-overview{grid-template-columns:minmax(0,1fr) 160px;}.performance-weather{grid-column:1/-1;border-left:0;border-top:1px solid var(--ui-line);padding:16px 0 0;}.performance-workspace .performance-columns{gap:18px;}}
+@media(max-width:900px){.performance-workspace .performance-columns{grid-template-columns:1fr;}.performance-workspace .performance-results{position:static;}body .realefb-os .settings-native{grid-template-columns:240px minmax(0,1fr);}body .realefb-os .settings-detail{padding:28px 22px;}}
+@media(max-width:700px){
+ body .realefb-os .os-desktop{display:grid!important;grid-template-columns:1fr!important;padding:20px 20px 120px!important;gap:24px!important;}
+ body .realefb-os .os-widgets{display:grid!important;grid-template-columns:1fr!important;gap:16px!important;}
+ body .realefb-os .os-welcome{display:none!important;}body .realefb-os .os-app-library{grid-column:1!important;padding:0!important;}
+ body .realefb-os .os-app-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;column-gap:10px!important;row-gap:22px!important;}
+ body .realefb-os .os-app{min-width:0!important;padding:0!important;}body .realefb-os .os-app h3{font-size:11px!important;max-width:100%;}
+ body .realefb-os .home-clock strong{font-size:48px;}body .realefb-os .os-dock{bottom:10px!important;padding:8px!important;border-radius:22px!important;}
+ body .realefb-os .settings-native{display:flex!important;flex-direction:column;height:100%;overflow:hidden;}
+ body .realefb-os .settings-list{flex:none;overflow:visible;padding:16px!important;border-bottom:1px solid #8882;}
+ body .realefb-os .settings-list h2{font-size:25px!important;margin:0 0 12px!important;}
+ body .realefb-os .settings-list :is(.settings-profile,.settings-group-label){display:none!important;}
+ body .realefb-os .settings-list nav{display:flex!important;gap:8px;overflow:auto;max-width:100%;padding:3px 0 8px;scrollbar-width:thin;}
+ body .realefb-os .settings-list .settings-category{flex:0 0 auto;width:auto!important;min-height:44px!important;gap:8px!important;border:0!important;border-radius:10px!important;margin:0!important;padding:8px 12px!important;font-size:12px!important;}
+ body .realefb-os .settings-category>i:last-child{display:none!important;}
+ body .realefb-os .settings-detail{flex:1;overflow:auto;padding:24px 16px!important;}
+ body .realefb-os .settings-detail-group{padding:18px!important;}body .realefb-os .settings-toggle-row{gap:16px;}.settings-toggle-label{min-width:0;}
+ body .notification-center{right:8px!important;left:auto!important;transform:none!important;max-height:calc(100dvh - 60px)!important;}
+ body .realefb-os.active-performance .utility-app{padding:68px 16px 24px!important;}
+ .performance-workspace .performance-overview{padding:20px;gap:20px;grid-template-columns:minmax(0,1fr) 130px;}
+ .performance-workspace .utility-panel{padding:20px;}.performance-toolbar{gap:12px;}.performance-badge{display:none;}
+ .performance-workspace .performance-tabs{width:100%;}.performance-workspace .performance-tabs button{flex:1;justify-content:center;}
+ body .realefb-os .utility-app>header h1{font-size:26px!important;}.ground-workspace .service-card button{min-height:44px;}
+ :where(.dispatch-controls,.dispatch-actions){flex-wrap:wrap;}
+}
+@media(max-width:420px){body .realefb-os .os-app-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;}.performance-workspace .utility-fields{gap:16px;}.performance-overview .performance-airport h2{font-size:30px;}.performance-results .wind-preview{gap:16px;}.wind-preview svg{width:90px;height:90px;}.performance-workspace .utility-result{gap:10px;}body .realefb-os .app-header{padding-inline:14px!important;}.ground-direction{flex-wrap:wrap;}.ground-direction button{min-width:100px;}}
+@media(max-width:350px){.performance-workspace .utility-fields{grid-template-columns:1fr;}.performance-workspace .performance-overview{grid-template-columns:1fr;}.performance-weather{grid-column:auto;}.performance-workspace .performance-runway{max-width:100%;}}
+@media(max-height:550px) and (orientation:landscape){body .realefb-os .utility-app{padding-top:60px!important;}body .realefb-os .os-desktop{padding-top:12px!important;}body .realefb-os .os-widgets>.home-clock{display:none!important;}body .realefb-os .settings-list{padding-block:10px!important;}body .realefb-os .settings-list h2{display:none;}}
+@media(prefers-reduced-motion:reduce){button,input,textarea,select{transition:none!important;scroll-behavior:auto!important;}}
+/* Library and communications chrome use the same control scale as the tools. */
+body .realefb-os:is(.active-dispatch,.active-documents){background:var(--ui-bg)!important;}
+body .realefb-os:is(.active-dispatch,.active-documents) :is(#wallpaper,#noise){display:none!important;}
+body .realefb-os:is(.active-dispatch,.active-documents) .app-header{background:#111!important;}
+body .realefb-os :is(.dispatch-log-card,.doc-card,.doc-empty){border-radius:var(--ui-radius)!important;}
+body .realefb-os :is(.dispatch-action-btn,.doc-back-btn){min-height:44px!important;border-radius:var(--ui-radius-sm)!important;font-size:13px!important;}
+body .realefb-os .dispatch-action-btn{background:#242424!important;border:1px solid #ffffff18!important;color:#eee!important;box-shadow:none!important;}
+body .realefb-os .dispatch-log-card{background:#141414!important;border-color:#ffffff15!important;}
+body .realefb-os .dispatch-actions{display:flex;flex-wrap:wrap;gap:10px;}
+body .realefb-os .doc-card{background:#171717!important;border:1px solid #ffffff15!important;box-shadow:none!important;color:#eee!important;min-height:72px!important;}
+body .realefb-os .doc-card :is(strong,small){color:inherit!important;}.doc-card small{opacity:.6;}
+body .realefb-os .doc-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))!important;gap:16px!important;}
+body .realefb-os .doc-viewer-bar{background:#171717!important;border-color:#ffffff15!important;}
+body .realefb-os .efl-tabbar{background:#171717!important;box-shadow:none!important;border:1px solid #ffffff18!important;border-radius:12px!important;}
+body .realefb-os .efl-tabbar .efl-tab-btn{min-height:44px;font-family:var(--font-sans);font-size:12px;}
+@media(max-width:700px){body .realefb-os .dispatch-actions button{flex:1 1 120px;}body .realefb-os .doc-viewer-bar{gap:8px;flex-wrap:wrap;}body .realefb-os .doc-card{width:100%;min-width:0;}.doc-list-name{overflow-wrap:anywhere;}}
+
+@media(max-width:850px){body .realefb-os .ground-console .ground-controls{order:-1;}}
+@media(max-width:700px){body .realefb-os .settings-list nav .settings-setup-row{display:flex!important;align-items:center;gap:8px;flex:0 0 auto;width:auto;white-space:nowrap;min-height:44px;margin:0;padding:8px 12px;border:1px solid #8883;border-radius:10px;font-size:12px;}body .realefb-os .ground-controls .ground-direction button{min-height:44px;}}
+@media(max-width:700px){body .realefb-os .efl-header{flex-wrap:wrap;gap:12px;padding:16px!important;}body .realefb-os .efl-tab-content{min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior:contain;}body .realefb-os .fmc-table{min-width:640px;}body .realefb-os .efl-tabbar{left:8px!important;right:8px!important;overflow-x:auto;justify-content:flex-start;}body .realefb-os .efl-tabbar .efl-tab-btn{flex-shrink:0;min-width:72px;}body .realefb-os #detail-screen:has(.efl-sheet){padding-inline:12px!important;}}
+.performance-workspace .performance-runway input{margin:0!important;} 
+/* Ground workspaces occupy the viewport: content reflows instead of overflowing it. */
+body .realefb-os:is(.active-ground,.active-pushback) .utility-app{display:flex!important;flex-direction:column!important;height:100%!important;min-height:0!important;padding:56px clamp(16px,3vw,40px) 16px!important;overflow:hidden!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .utility-app>header{width:100%;max-width:1320px;margin:0 auto 12px!important;flex:none;}
+body .realefb-os:is(.active-ground,.active-pushback) .utility-app>header .eyebrow{display:none;}
+body .realefb-os:is(.active-ground,.active-pushback) .utility-app>header h1{font-size:24px!important;margin:0!important;line-height:32px;}
+.ground-workspace{display:flex;flex-direction:column;min-height:0;width:100%;flex:1;}
+.ground-workspace .ground-tabs{flex:none;align-self:flex-start;margin:0 0 12px!important;padding:3px;}
+.ground-workspace .ground-tabs button{min-height:38px!important;padding:8px 16px!important;}
+.ground-workspace .ground-services{flex:1;min-height:0;width:100%;grid-template-columns:minmax(210px,.7fr) minmax(0,2fr);gap:18px;}
+.ground-workspace .stand-overview{height:100%;min-height:0;padding:20px;display:flex;flex-direction:column;}
+.stand-aircraft-image{flex:1;min-height:60px;margin:16px -8px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:12px;}
+.stand-aircraft-image img{display:block;max-width:100%;width:100%;height:100%;object-fit:contain;}
+.ground-workspace .stand-overview h2{font-size:20px;margin:0 0 8px;}.ground-workspace .stand-overview p{font-size:12px;margin:0 0 16px;}
+.ground-workspace .stand-overview>small{font-size:10px;line-height:1.5;}.ground-workspace .stand-pushback-link{margin-top:16px;min-height:40px;}
+.ground-workspace .service-board{height:100%;min-height:0;display:flex;flex-direction:column;}
+.ground-workspace .service-board>header{flex:none;padding:14px 18px;min-height:58px;}.ground-workspace .service-board>header .ops-kicker{display:none;}.ground-workspace .service-board h2{font-size:18px;margin:0;}
+.ground-workspace .service-grid{display:grid!important;flex:1;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(3,minmax(0,1fr));gap:10px;padding:12px;}
+.ground-workspace .service-card{min-height:0;padding:14px!important;display:grid!important;grid-template-columns:32px minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) 40px;gap:8px 12px;align-items:start;background:#191919;border:1px solid #ffffff0b!important;border-radius:12px!important;}
+.ground-workspace .service-number{display:none;}.ground-workspace .service-icon{width:32px;height:32px;font-size:16px;border-radius:9px;}.ground-workspace .service-copy{min-width:0;}.ground-workspace .service-card h3{font-size:14px;margin:0 0 5px;}.ground-workspace .service-card p{font-size:11px;line-height:1.4;margin:0 0 6px;}.ground-workspace .service-card small{font-size:10px;line-height:1.4;}
+.ground-workspace .service-card button{grid-column:1/-1!important;width:100%!important;min-width:0!important;min-height:40px!important;height:40px;padding:8px 12px;font-size:11px;align-self:end;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-console{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)!important;flex:1;min-height:0;width:100%;gap:18px;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-scene{display:flex!important;flex-direction:column;min-height:0;overflow:hidden;padding:18px!important;}
+body .realefb-os .ground-console .ground-controls{order:0!important;}
+.ground-scene .realistic-apron-wrap{display:flex!important;flex:1;min-height:0;height:auto!important;margin:12px 0!important;}
+.aircraft-visual{display:flex;flex-direction:column;justify-content:center;min-height:0;width:100%;height:100%;margin:0;}
+.aircraft-visual img{width:100%;height:100%;min-height:0;object-fit:contain;border-radius:12px;display:block;flex:1;}
+.aircraft-visual figcaption{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:#777;padding-top:10px;flex:none;}.visual-link.ready{color:#8ebfa4;}
+body .realefb-os .ground-scene .ground-instruments{flex:none;padding-top:12px;margin-top:0;border-top:1px solid #ffffff12;gap:8px!important;}.ground-scene .ground-instruments>div{padding:10px!important;min-width:0;}.ground-scene .ground-instruments small{font-size:9px!important;}.ground-scene .ground-instruments strong{font-size:18px!important;line-height:1.3;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-controls.utility-panel{min-height:0;display:flex;flex-direction:column;gap:12px;padding:22px!important;justify-content:center;}
+.pushback-control-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;}.pushback-control-heading span{font-size:9px;letter-spacing:1px;color:#777;}
+body .realefb-os .ground-controls .pushback-control-heading h2{margin:0!important;font-size:22px;}
+body .realefb-os .ground-controls .pushback-instruction{font-size:11px!important;line-height:1.5;margin:0!important;}
+.pushback-primary{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+body .realefb-os .ground-controls .pushback-primary button{min-height:46px!important;margin:0!important;width:100%;font-size:12px;padding:8px!important;}
+body .realefb-os .ground-controls :is(.ground-steering,.ground-direction){margin:0!important;gap:8px;}
+body .realefb-os .ground-controls :is(.ground-steering,.ground-direction) button{min-height:40px!important;font-size:12px;padding:8px!important;flex:1;min-width:0;}
+body .realefb-os .ground-controls .ground-speed{margin:4px 0!important;font-size:12px!important;}.ground-speed input{margin-top:12px!important;}
+body .realefb-os .ground-controls .tug-connect{min-height:40px!important;padding:8px!important;font-size:12px;}
+body .realefb-os .ground-controls .pushback-message{min-height:32px;margin:0!important;line-height:1.5;font-size:11px!important;}.pushback-footnote{font-size:10px;color:#777;line-height:1.5;}
+.heading-shade{position:fixed;inset:0;z-index:940;background:#0009;backdrop-filter:blur(10px);display:grid;place-items:center;padding:20px;}.heading-dialog{width:min(360px,100%);padding:24px;border-radius:18px;background:#1b1b1b;border:1px solid #ffffff20;color:#eee;}.heading-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px;}.heading-dialog h2{font-size:20px;margin:0;}.heading-dialog button{border:1px solid #ffffff20;background:#333;color:#eee;border-radius:10px;min-height:40px;padding:10px;}.heading-dialog input{width:100%;padding:14px;margin:10px 0 18px;background:#111;border:1px solid #ffffff20;border-radius:10px;color:#eee;font-size:20px;}.heading-dialog .heading-apply{width:100%;background:#eee;color:#111;}.heading-dialog .ground-heading{margin-top:20px;}
+@media(max-width:850px){.ground-workspace .ground-services{grid-template-columns:1fr;}.ground-workspace .stand-overview{display:none;}body .realefb-os:is(.active-ground,.active-pushback) .ground-console{grid-template-columns:minmax(0,.8fr) minmax(0,1fr)!important;gap:12px;}body .realefb-os:is(.active-ground,.active-pushback) .ground-controls.utility-panel{padding:16px!important;gap:10px;}.ground-scene .ground-instruments{grid-template-columns:1fr!important;}.ground-scene .ground-instruments>div:last-child{display:none;}}
+@media(max-width:600px) and (min-height:501px){body .realefb-os:is(.active-ground,.active-pushback) .utility-app{padding:54px 12px 12px!important;}body .realefb-os:is(.active-ground,.active-pushback) .utility-app>header h1{font-size:20px!important;line-height:26px;}.ground-workspace .ground-tabs{margin-bottom:10px!important;align-self:stretch;}.ground-workspace .ground-tabs button{min-height:36px!important;}.ground-workspace .service-grid{padding:8px;gap:8px;}.ground-workspace .service-card{padding:10px!important;gap:6px 8px;grid-template-columns:26px minmax(0,1fr)!important;}.ground-workspace .service-icon{width:26px;height:26px;font-size:13px;}.ground-workspace .service-card p{display:none;}.ground-workspace .service-card h3{font-size:12px;}.ground-workspace .service-card small{font-size:9px;}.ground-workspace .service-card button{font-size:10px;}.ground-workspace .service-board>header{min-height:44px;padding:10px 12px;}.service-count{font-size:9px;}
+ body .realefb-os:is(.active-ground,.active-pushback) .ground-console{grid-template-columns:1fr!important;grid-template-rows:minmax(70px,1fr) auto!important;gap:10px;}.ground-scene .ground-scene-top,.ground-scene .ground-instruments,.aircraft-visual figcaption{display:none!important;}body .realefb-os:is(.active-ground,.active-pushback) .ground-scene{padding:0!important;border:0!important;background:none!important;}.ground-scene .realistic-apron-wrap{margin:0!important;}.aircraft-visual img{object-fit:contain;}.pushback-control-heading span,.pushback-footnote{display:none;}body .realefb-os:is(.active-ground,.active-pushback) .ground-controls.utility-panel{padding:14px!important;gap:8px;}.pushback-control-heading h2{font-size:18px!important;}.ground-speed input{margin-top:8px!important;}.pushback-message{min-height:28px!important;}}
+@media(max-height:650px) and (min-height:501px){body .realefb-os:is(.active-ground,.active-pushback) .ground-controls.utility-panel{gap:8px;padding:16px!important;}.pushback-footnote,.pushback-instruction{display:none;}.ground-workspace .service-card p{display:none;}}
+@media(max-height:500px){body .realefb-os:is(.active-ground,.active-pushback) .utility-app{padding:50px 12px 8px!important;}body .realefb-os:is(.active-ground,.active-pushback) .utility-app>header{display:none;}.ground-workspace .ground-tabs{margin-bottom:6px!important;padding:2px;}.ground-workspace .ground-tabs button{min-height:32px!important;padding:4px 12px!important;font-size:11px;}.ground-workspace .stand-overview{display:none;}.ground-workspace .ground-services{grid-template-columns:1fr;}.ground-workspace .service-board>header{min-height:30px;padding:5px 12px;}.ground-workspace .service-board h2{font-size:13px;}.ground-workspace .service-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-template-rows:repeat(2,minmax(0,1fr));padding:6px;gap:6px;}.ground-workspace .service-card{padding:8px!important;grid-template-columns:24px minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) 34px;gap:4px 8px;}.ground-workspace .service-card p{display:none;}.ground-workspace .service-icon{width:24px;height:24px;font-size:12px;}.ground-workspace .service-card h3{font-size:12px;margin-bottom:2px;}.ground-workspace .service-card small{font-size:9px;}.ground-workspace .service-card button{min-height:34px!important;height:34px;font-size:10px;}
+ body .realefb-os:is(.active-ground,.active-pushback) .ground-console{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)!important;gap:10px;}body .realefb-os:is(.active-ground,.active-pushback) .ground-controls.utility-panel{display:grid!important;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto auto auto minmax(20px,auto);gap:6px 10px;padding:10px!important;align-content:center;}.pushback-control-heading,.pushback-primary,.ground-steering,.ground-direction,.pushback-message{grid-column:1/-1;}.pushback-control-heading span,.pushback-footnote,.pushback-instruction{display:none;}.pushback-control-heading h2{font-size:16px!important;}.ground-controls .pushback-primary button{min-height:34px!important;}.ground-controls .ground-steering button,.ground-controls .ground-direction button{min-height:32px!important;}.ground-controls .ground-speed{font-size:10px!important;margin:0!important;}.ground-speed input{margin-top:6px!important;}.ground-controls .tug-connect{align-self:center;min-height:34px!important;}.ground-controls .pushback-message{font-size:10px!important;min-height:20px!important;}.ground-scene .ground-instruments{display:none!important;}.aircraft-visual figcaption{display:none;}}
+@media(max-width:600px) and (min-height:501px){body .realefb-os:is(.active-ground,.active-pushback) .ground-console>section.ground-scene{padding:0!important;border:0!important;background:none!important;}body .realefb-os .ground-console .ground-scene .ground-instruments{display:none!important;}body .realefb-os .ground-console .ground-scene .realistic-apron-wrap{margin:0!important;background:none!important;}body .realefb-os .ground-console .ground-scene .aircraft-visual{padding:0!important;}body .realefb-os .ground-console .ground-scene .aircraft-visual figcaption{display:none!important;}}
+@media(max-height:500px){body .realefb-os .ground-console .ground-scene .ground-instruments{display:none!important;}}
+/* Live 3D occupies the same bounded viewport as the old illustration. */
+body .realefb-os .ground-3d{display:flex!important;flex-direction:column;position:relative;height:100%;width:100%;min-height:0;margin:0;overflow:hidden;border-radius:12px;background:#141719;}
+.ground-3d-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;flex:none;background:#1a1d1f;color:#aeb6bc;border-bottom:1px solid #ffffff12;}
+.ground-3d-toolbar>span{font-size:9px;letter-spacing:1px;white-space:nowrap;}.ground-3d-toolbar>div{display:flex;gap:5px;}
+body .realefb-os .ground-3d-toolbar button{min-height:28px!important;height:28px;padding:4px 8px!important;font-size:10px!important;border:1px solid #ffffff18;border-radius:6px;background:#252a2d;color:#d4dadd;white-space:nowrap;}
+.ground-3d-toolbar button[aria-pressed=true]{background:#72572d!important;color:#ffe0a9!important;}
+.ground-3d-canvas{flex:1;min-height:0;position:relative;width:100%;overflow:hidden;touch-action:none;}
+.ground-3d-canvas canvas{display:block;width:100%;height:100%;touch-action:none;}
+body .realefb-os .ground-3d figcaption{display:flex!important;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:7px 10px;flex:none;font-size:9px;color:#a2acb2;}
+.legend-measured,.legend-requested{display:inline-block;width:12px;height:2px;background:#71d6d0;vertical-align:middle;margin:0 4px 0 8px;}.legend-requested{background:#f3bd67;}
+.ground-3d-error{position:absolute;inset:40% 10% auto;padding:12px;background:#202528;color:#d4dadf;font-size:12px;text-align:center;}
+.stand-3d{margin:12px 0!important;}.stand-3d .ground-3d-toolbar>span,.stand-3d .ground-3d figcaption{display:none!important;}.stand-3d .ground-3d-toolbar{justify-content:center;padding:6px;}.stand-3d .ground-3d-toolbar button{font-size:9px!important;padding:3px 5px!important;}
+@media(max-width:850px){.ground-3d-toolbar{flex-wrap:wrap;padding:5px 8px;}.ground-3d-toolbar>span{display:none;}body .realefb-os .ground-3d figcaption{font-size:8px;}.ground-3d figcaption>span:last-child{display:none;}}
+@media(max-width:600px) and (min-height:501px){body .realefb-os .ground-console .ground-scene .ground-3d figcaption{display:none!important;}.ground-3d-toolbar{padding:3px 6px;}body .realefb-os .ground-3d-toolbar button{min-height:24px!important;height:24px;padding:2px 7px!important;font-size:9px!important;}.ground-3d-toolbar>div{justify-content:center;flex:1;}}
+@media(max-height:500px){body .realefb-os .ground-3d figcaption{display:none!important;}.ground-3d-toolbar{padding:3px 6px;}body .realefb-os .ground-3d-toolbar button{min-height:24px!important;height:24px;font-size:9px!important;padding:2px 6px!important;}}
+.ground-3d-north{position:absolute;top:52px;left:12px;color:#bac4ca;font-size:12px;font-weight:650;pointer-events:none;}.ground-3d-travel{position:absolute;left:12px;bottom:38px;padding:4px 7px;border-radius:5px;background:#111a;color:#b7ced4;font-size:9px;letter-spacing:.7px;pointer-events:none;}.ground-3d-loading{display:grid;place-items:center;width:100%;height:100%;min-height:0;color:#888;font-size:12px;}
+@media(max-width:600px),(max-height:500px){.ground-3d-north{top:34px;left:8px;font-size:10px;}.ground-3d-travel{bottom:6px;left:8px;font-size:8px;}}
+.settings-ip-row .settings-ip-url{margin-left:auto;overflow-wrap:anywhere;min-width:0;user-select:text;}
+.settings-copy-address{display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:none;min-width:86px;min-height:36px;padding:8px 12px;border:1px solid #8884;border-radius:9px;background:#8882;color:inherit;font-size:12px;font-weight:600;cursor:pointer;}
+@media(max-width:600px){.settings-ip-row{flex-wrap:wrap;gap:10px;}.settings-ip-row .settings-ip-name{flex:1;}.settings-ip-row .settings-ip-url{order:3;flex:1 0 100%;margin:0;font-size:12px;}.settings-copy-address{min-height:40px;}}
+/* Home dock stays a horizontal, height-bounded bar in short landscape windows. */
+body .realefb-os.os-home{--side-dock:0px;--launcher-size:58px;--launcher-gap:10px;}
+body .realefb-os.os-home .os-dock{position:fixed!important;inset:auto auto 12px 50%!important;transform:translateX(-50%)!important;translate:none!important;width:max-content!important;max-width:calc(100% - 24px)!important;height:auto!important;max-height:none!important;margin:0!important;padding:4px 10px!important;border-radius:24px!important;}
+body .realefb-os.os-home .os-dock nav{display:flex!important;flex-direction:row!important;align-items:center!important;gap:var(--launcher-gap)!important;width:auto;max-width:100%;height:calc(var(--launcher-size) + 16px)!important;max-height:none!important;overflow-x:auto!important;overflow-y:hidden!important;padding:6px 0 10px!important;}
+body .realefb-os.os-home .os-dock button,body .realefb-os.os-home .os-dock .os-dock-icon{width:var(--launcher-size)!important;height:var(--launcher-size)!important;min-height:var(--launcher-size)!important;flex:0 0 var(--launcher-size)!important;}
+body .realefb-os.os-home .os-dock .os-dock-divider{flex:0 0 1px!important;width:1px!important;height:calc(var(--launcher-size) - 12px)!important;align-self:center!important;margin:0 2px!important;}
+body .realefb-os.os-home .os-dock .os-dock-dot{top:auto!important;left:calc(50% - 2px)!important;bottom:-6px!important;}
+body .realefb-os.os-home .os-desktop{padding-bottom:118px!important;}
+body .realefb-os.os-home .os-page-indicator{position:fixed;bottom:108px!important;}
+@media(max-width:700px){body .realefb-os.os-home{--launcher-size:36px;--launcher-gap:3px;}body .realefb-os.os-home .os-dock{bottom:8px!important;padding:3px 8px!important;border-radius:18px!important;}body .realefb-os.os-home .os-dock .os-dock-icon>i{font-size:18px!important;}body .realefb-os.os-home .os-desktop{padding-bottom:88px!important;}body .realefb-os.os-home .os-page-indicator{bottom:76px!important;}}
+@media(orientation:landscape) and (max-height:600px){body .realefb-os.os-home{--launcher-size:44px;--launcher-gap:8px;}body .realefb-os.os-home .os-desktop{padding-bottom:96px!important;}body .realefb-os.os-home .os-dock{bottom:8px!important;}body .realefb-os.os-home .os-page-indicator{bottom:86px!important;}body .realefb-os.os-home .os-dock .os-dock-icon>i{font-size:21px!important;}}
+@media(orientation:landscape) and (max-height:600px){body .realefb-os.os-home .os-app-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;max-width:none!important;width:100%;gap:14px 12px!important;}body .realefb-os.os-home .os-app{width:auto!important;gap:6px!important;}body .realefb-os.os-home .os-app .os-app-icon{width:44px!important;height:44px!important;}body .realefb-os.os-home .os-app .app-mark{width:29px!important;height:29px!important;}body .realefb-os.os-home .os-app .os-app-icon>i{font-size:22px!important;}body .realefb-os.os-home .os-app h3{font-size:10px!important;}body .realefb-os.os-home .os-welcome{display:none!important;}body .realefb-os.os-home .os-app-library{padding-top:4px!important;}}
+@media(orientation:landscape) and (max-height:600px) and (max-width:739px){body .realefb-os.os-home .os-app-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;row-gap:8px!important;}}
+
+body[data-wallpaper="tidal"] #wallpaper,.wallpaper-thumb[data-wallpaper="tidal"]{background:url("/assets/wallpapers/tidal.jpg") center/cover no-repeat!important;}
+
+body[data-wallpaper="ember"] #wallpaper,.wallpaper-thumb[data-wallpaper="ember"]{background:url("/assets/wallpapers/ember.jpg") center/cover no-repeat!important;}
+
+body[data-wallpaper="highlands"] #wallpaper,.wallpaper-thumb[data-wallpaper="highlands"]{background:url("/assets/wallpapers/highlands.jpg") center/cover no-repeat!important;}
+
+body[data-wallpaper="glacier"] #wallpaper,.wallpaper-thumb[data-wallpaper="glacier"]{background:url("/assets/wallpapers/glacier.jpg") center/cover no-repeat!important;}
+
+.wallpaper-collection{margin-bottom:24px;}.wallpaper-collection:last-child{margin-bottom:0;}.wallpaper-collection h3{font-size:13px;font-weight:650;margin:0 0 12px;color:inherit;}.settings-native .wallpaper-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,140px),1fr));gap:16px;}.settings-native .wallpaper-option{width:100%;min-width:0;}.settings-native .wallpaper-thumb{width:100%;height:auto;aspect-ratio:16/10;border-radius:12px;}.settings-native .wallpaper-label{font-size:12px;line-height:1.5;margin-top:8px;}

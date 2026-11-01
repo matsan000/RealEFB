@@ -45,7 +45,7 @@ body {
   color: var(--text);
   /* Inter rather than SF Pro Display - the reference EFB screenshots read as a generic
      cross-platform sans, not Apple's distinctly rounded system font, which was giving the whole
-     app a more "iOS app" flavor than a realistic one. Inter is that same neutral grotesque, just
+     app a more "mobile app" flavor than a realistic one. Inter is that same neutral grotesque, just
      one that renders identically on the desktop's WebView2 and a tablet's browser instead of
      falling through to whichever of Helvetica/Arial/Roboto that device happens to have. */
   font-family: var(--font-sans);
@@ -583,7 +583,7 @@ body[data-wallpaper="clouds"] {
 /* Wraps up to 2 lines instead of truncating to one - a single-line ellipsis was cutting
    longer labels like "SimBrief Performance" down to unreadable fragments ("SimBrief Per...").
    -webkit-line-clamp is fine to rely on unprefixed-CSS-standard alternatives for here - both
-   places this app runs (WebView2 and Safari/iPad) are Blink/WebKit, which both support it. */
+   places this app runs (WebView2 and mobile Safari) are Blink/WebKit, which both support it. */
 .tile-label {
   font-size: 12.5px;
   font-weight: 500;
@@ -4430,4 +4430,5 @@ body[data-efl-theme="dark"] .efl-theme-btn {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(191, 219, 254, 0.3);
 }
+
 

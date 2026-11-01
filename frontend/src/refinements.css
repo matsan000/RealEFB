@@ -1,0 +1,91 @@
+/* Shared geometry: a single glyph, centered in the same icon frame everywhere. */
+body .realefb-os { --tb-icon: 23%; }
+body .realefb-os .os-app .os-app-icon { overflow:hidden; flex-shrink:0; aspect-ratio:1; }
+body .realefb-os .os-app .app-mark { flex:none; margin:0!important; width:40px!important; height:40px!important; }
+body .realefb-os .os-app .os-app-icon > i { width:1.25em; height:1.25em; flex:none; }
+body .realefb-os .os-dock-icon { border-radius:23%!important; display:grid!important; place-items:center; }
+body .realefb-os .os-app h3 { min-height:2.6em; line-height:1.3; display:flex; justify-content:center; align-items:flex-start; white-space:normal!important; }
+body .realefb-os .app-icon-ground { --tb-top:#40c7de; --tb-bottom:#087c9d; }
+body .realefb-os.active-ground #detail-screen {display:none!important;}
+body .realefb-os .utility-app { padding-top:90px; box-sizing:border-box; }
+.ground-tabs { display:flex; gap:8px; max-width:1200px; margin:0 auto 24px; }
+.ground-tabs button {border:1px solid #ffffff20;background:#ffffff08;color:#a9bfd1;padding:12px 22px;border-radius:12px;cursor:pointer;}
+.ground-tabs button[aria-selected=true] {background:#8be0cc;color:#102936;border-color:transparent;}
+.ground-services {max-width:1200px;margin:auto;}
+.ground-service-intro {margin:24px 0;}.ground-service-intro h2 {font-size:28px;margin:20px 0 10px;}.ground-service-intro p {color:#a9bfd1;max-width:700px;line-height:1.7;}
+.service-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;}
+.service-card {background:linear-gradient(145deg,#1b2b3c,#111d2b);border:1px solid #ffffff18;border-radius:20px;padding:24px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;}
+.service-icon {width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#7ed8c51a;color:#8be0cc;font-size:22px;}.service-card h3{margin:4px 0 0;font-size:19px;}.service-card p{color:#a9bfd1;line-height:1.6;margin:0 0 12px;flex:1;}.service-card button {display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:13px 16px;border-radius:12px;background:#8be0cc;color:#102936;border:0;font-weight:650;cursor:pointer;}.service-card button:disabled {opacity:.4;cursor:not-allowed;}.service-card small{color:#a9bfd1;line-height:1.5;}
+body .realefb-os .ground-controls .easy-pushback {width:100%;background:#8be0cc;color:#102936;min-height:56px;font-weight:700;margin-bottom:14px;}.pushback-advanced {padding:16px 0;color:#a9bfd1;}.pushback-advanced summary{cursor:pointer;}.realistic-apron-svg #pushback-tug {transition:transform 1s ease;}.realistic-apron-svg .apron-grid{transform:translateY(var(--apron-offset));}.realistic-apron-svg{overflow:hidden;}
+@media(max-width:900px){.service-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:600px){.service-grid{grid-template-columns:1fr;}.ground-tabs button{flex:1;padding:12px;}.service-card{padding:20px;}}
+@media(prefers-reduced-motion:reduce){.realistic-apron-svg .apron-grid{transform:none;}.realistic-apron-svg #pushback-tug{transition:none;}}
+.realistic-apron-svg .apron-rig { transition:transform 1s linear; } @media(prefers-reduced-motion:reduce){.realistic-apron-svg .apron-rig{transition:none;}}
+
+body .realefb-os .ground-controls > .ground-stop { margin:0 0 18px; background:#a93135; color:white; min-height:48px; }
+
+body .realefb-os .dock-ground .os-dock-icon{background:linear-gradient(160deg,#40c7de,#087c9d)!important;color:#fff!important;}
+/* Navigation belongs to the status bar, in document flow. */
+body .realefb-os .app-header.os-statusbar {height:44px!important;--header-height:44px;overflow:visible!important;z-index:90!important;}
+body .realefb-os {--header-height:44px;}
+body .realefb-os .app-header #statusbar {width:100%;min-width:0;}
+body .realefb-os .app-header #statusbar .statusbar-left {gap:12px;min-width:0;align-items:center;}
+body .realefb-os .app-header #statusbar .os-back {position:static!important;inset:auto!important;transform:none!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:4px 12px 4px 0!important;min-height:32px!important;height:32px!important;flex-shrink:0;background:transparent!important;border:0!important;border-right:1px solid #8884!important;border-radius:0!important;box-shadow:none!important;font-size:14px!important;line-height:1!important;z-index:auto!important;color:#ededed!important;}
+body .realefb-os .app-header #statusbar .os-back :is(i,span) {color:inherit!important;}
+body .realefb-os.active-settings .app-header #statusbar .os-back {color:#006bd6!important;}
+body[data-appearance=dark] .realefb-os.active-settings .app-header #statusbar .os-back {color:#74b9ff!important;}
+body .realefb-os .os-active-app {pointer-events:none;}
+body .realefb-os .os-back:focus-visible{outline:2px solid currentColor;outline-offset:2px;}
+/* Slider fill is clipped by one rounded surface, independent of native range rendering. */
+body .notification-center {border-radius:0!important;padding:6px!important;box-sizing:border-box!important;width:min(424px,calc(100vw - 28px))!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;overflow-x:hidden!important;clip-path:none!important;}
+body .notification-center .command-sliders .glass-level {border-radius:24px!important;clip-path:inset(0 round 24px);border:0!important;box-shadow:none!important;}
+body .notification-center .glass-level > .level-fill {display:block!important;position:absolute;left:0;right:0;bottom:0;top:auto;width:100%;background:#f4f4f0;z-index:0;pointer-events:none;border-radius:0;mix-blend-mode:normal;}
+body .notification-center .glass-level input[type=range] {opacity:0!important;inset:0!important;margin:0!important;width:100%!important;height:100%!important;border:0!important;border-radius:0!important;z-index:2!important;}
+body .notification-center .glass-level:focus-within{outline:2px solid white;outline-offset:3px;}
+body .notification-center > p {margin:4px 0!important;padding:4px 2px!important;min-width:0;overflow:visible!important;}
+/* Ground apps: graphite surfaces, compact service rows, quiet white accents. */
+body .realefb-os:is(.active-ground,.active-pushback) {background:#090909!important;color:#eee;}
+body .realefb-os:is(.active-ground,.active-pushback) :is(#wallpaper,#noise){display:none!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .app-header {background:#111!important;backdrop-filter:none!important;border-bottom:1px solid #ffffff14!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .os-active-app {background:#242424!important;color:#eee!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .utility-app {padding:76px 32px 32px!important;background:#090909!important;color:#eee!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .utility-app > header {max-width:1320px;margin:0 auto 24px;}
+body .realefb-os:is(.active-ground,.active-pushback) .utility-app > header .eyebrow {color:#777;font-size:10px;letter-spacing:2px;}
+body .realefb-os:is(.active-ground,.active-pushback) .utility-app > header h1 {font-size:30px;font-weight:650;letter-spacing:-1px;margin:10px 0;}
+body .realefb-os:is(.active-ground,.active-pushback) .utility-app h1 i {color:#eee!important;font-size:25px;}
+.ground-workspace{max-width:1320px;margin:auto;}
+.ground-workspace .ground-tabs {max-width:none;display:inline-flex;background:#191919;padding:5px;border:1px solid #ffffff10;border-radius:12px;margin:0 0 26px;gap:4px;}
+.ground-workspace .ground-tabs button{display:flex;align-items:center;gap:9px;border:0;background:transparent;color:#999;padding:11px 18px;font-size:13px;}
+.ground-workspace .ground-tabs button[aria-selected=true]{background:#e9e9e7;color:#141414;box-shadow:0 2px 6px #0004;}
+.ground-workspace .ground-services{display:grid;grid-template-columns:280px minmax(0,1fr);gap:30px;max-width:none;align-items:start;}
+.stand-overview{padding:28px;border:1px solid #ffffff12;border-radius:18px;background:#141414;}
+.ops-kicker{font-size:10px;letter-spacing:1.8px;color:#888;font-weight:650;}
+.stand-symbol{height:170px;position:relative;display:grid;place-items:center;margin:14px 0 24px;background:repeating-linear-gradient(0deg,transparent 0 31px,#ffffff04 32px),repeating-linear-gradient(90deg,transparent 0 31px,#ffffff04 32px);}
+.stand-symbol>i{font-size:82px;color:#d4d4d4;transform:rotate(-90deg);z-index:1;filter:drop-shadow(0 10px 10px #0008);}.stand-guide{position:absolute;top:5px;bottom:5px;border-left:1px dashed #bfa66880;left:50%;}.stand-guide:after{content:'';position:absolute;top:30px;width:64px;left:-32px;border-top:2px solid #bfa66880;}
+.stand-overview h2{font-size:24px;letter-spacing:-.6px;margin:0 0 10px;}.stand-overview p{font-size:13px;color:#999;line-height:1.6;margin:0 0 24px;}.stand-overview>small{display:block;color:#777;line-height:1.7;font-size:11px;}
+.stand-connection{display:flex;align-items:center;gap:8px;color:#aaa;font-size:12px;margin:0 0 14px;}.stand-connection>span{width:6px;height:6px;border-radius:50%;background:#bb9561;}.stand-connection.is-ready>span{background:#8bc5a1;}
+.stand-pushback-link{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#232323;border:1px solid #ffffff12;border-radius:10px;color:#ddd;padding:12px;width:100%;font-size:12px;margin-top:26px;cursor:pointer;}
+.service-board{border:1px solid #ffffff12;border-radius:18px;background:#111;overflow:hidden;}.service-board>header{display:flex;align-items:center;justify-content:space-between;padding:22px 26px;border-bottom:1px solid #ffffff12;}.service-board h2{font-size:20px;letter-spacing:-.4px;margin:7px 0 0;}.service-count{font-size:10px;letter-spacing:1.5px;color:#666;}
+.ground-workspace .service-grid{display:flex;flex-direction:column;gap:0;}
+.ground-workspace .service-card{display:grid;grid-template-columns:20px 42px minmax(0,1fr) auto;align-items:center;gap:18px;padding:22px 26px;border:0;border-bottom:1px solid #ffffff0b;border-radius:0;background:transparent;}
+.ground-workspace .service-card:last-child{border-bottom:0;}.service-number{font-size:10px;color:#555;font-variant-numeric:tabular-nums;}.ground-workspace .service-icon{width:42px;height:42px;font-size:19px;border-radius:11px;background:#232323;color:#c7c7c7;}
+.ground-workspace .service-card h3{font-size:15px;margin:0 0 5px;color:#eee;font-weight:600;}.ground-workspace .service-card p{font-size:12px;color:#858585;margin:0 0 7px;line-height:1.5;}.ground-workspace .service-card small{font-size:10px;color:#aaa;display:block;line-height:1.4;}
+.ground-workspace .service-card button{width:auto;min-width:146px;background:#e2e2df;color:#141414;padding:11px 13px;font-size:11px;border-radius:9px;}.ground-workspace .service-card button:disabled{background:#242424;color:#777;opacity:1;}.ground-workspace .service-card button i{font-size:10px;}
+body .realefb-os:is(.active-ground,.active-pushback) :is(.ground-scene,.ground-controls.utility-panel){background:#141414!important;border:1px solid #ffffff14!important;box-shadow:none!important;border-radius:18px!important;padding:24px!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-console{max-width:1320px;margin:auto;gap:24px;grid-template-columns:minmax(0,1fr) minmax(360px,1fr);}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-controls :is(p,label,summary){color:#999!important;font-size:12px;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-controls h2{font-size:24px;margin:0 0 16px;letter-spacing:-.6px;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-controls button{background:#242424!important;color:#ddd!important;border:1px solid #ffffff12!important;box-shadow:none!important;border-radius:10px!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-controls .easy-pushback{background:#e9e9e6!important;color:#111!important;min-height:48px;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-controls .ground-stop{background:#422124!important;color:#efb7b7!important;margin:0 0 12px;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-controls input:not([type=range]){background:#202020!important;border-color:#ffffff15!important;color:#eee!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-controls button:disabled{opacity:.35!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-pill{background:#222!important;color:#aaa!important;border-radius:7px;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-instruments>div{background:#0e0e0e!important;border-color:#ffffff12!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-instruments :is(small,em){color:#888!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-heading input{background:#222!important;}
+body .realefb-os:is(.active-ground,.active-pushback) .ground-speed input{accent-color:#eee!important;background:#333!important;}
+@media(max-width:1050px){.ground-workspace .ground-services{grid-template-columns:220px minmax(0,1fr);gap:18px;}.ground-workspace .service-card{grid-template-columns:34px minmax(0,1fr) auto;padding:20px;gap:12px;}.service-number{display:none;}.ground-workspace .service-card button{min-width:126px;}.stand-overview{padding:22px;}}
+@media(max-width:850px){body .realefb-os.os-app-open .statusbar-left :is(#date,.local-clock){display:none!important;}body .realefb-os.os-app-open .os-active-app{display:none!important;}.ground-workspace .ground-services{grid-template-columns:1fr;}.stand-symbol{display:none;}.stand-overview{padding:20px;}.stand-overview p{margin-bottom:14px;}.stand-pushback-link{margin-top:16px;}body .realefb-os:is(.active-ground,.active-pushback) .ground-console{grid-template-columns:1fr;}}
+@media(max-width:600px){body .realefb-os:is(.active-ground,.active-pushback) .utility-app{padding:68px 16px 24px!important;}.ground-workspace .ground-tabs{display:flex;}.ground-workspace .ground-tabs button{padding:10px;font-size:12px;}.service-board>header{padding:20px;}.ground-workspace .service-card{grid-template-columns:36px minmax(0,1fr);}.ground-workspace .service-card button{grid-column:2;justify-content:space-between;width:100%;}.ground-workspace .service-copy{min-width:0;}body .notification-center{right:8px!important;top:48px!important;width:calc(100vw - 16px)!important;}}
+body .realefb-os:is(.active-ground,.active-pushback) .realistic-apron-container{background:#111!important;border-color:#333!important;} 

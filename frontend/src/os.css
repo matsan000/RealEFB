@@ -1,0 +1,213 @@
+/* RealEFB OS: an app-first desktop over a quiet, static wallpaper. */
+.realefb-os { --rail-width: 0px; --header-height: 62px; --os-dock-space: 106px; }
+body[data-wallpaper="sky"] .realefb-os #wallpaper {
+  background: radial-gradient(ellipse at 95% 5%, #58b8b578, transparent 55%), radial-gradient(ellipse at 0 95%, #6a69cd80, transparent 65%), radial-gradient(ellipse at 65% 95%, #0c7890aa, transparent 65%), linear-gradient(130deg, #172b52, #1e4766 48%, #123147);
+}
+.realefb-os .app-content { margin-left: 0; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.realefb-os.os-app-open .app-content { background: #0b1524d9; }
+.realefb-os .app-header { height: var(--header-height); padding: 0 28px; background: #11223936; border: 0; box-shadow: none; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.realefb-os .brand { gap: 10px; }
+.realefb-os .brand b { font-size: 16px; font-weight: 700; letter-spacing: -.5px; }
+.realefb-os .brand b span { font-weight: 400; color: #c1d9ec; }
+.os-logo { display: inline-flex; flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1px #ffffff50, 0 4px 15px #0002; }
+.os-logo img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.45); }
+.realefb-os .statusbar-left { background: none; border: 0; padding: 0; gap: 13px; }
+.realefb-os #clock { font-size: 13px; }
+.realefb-os #date { font-size: 11px; color: #bed0e0; }
+.realefb-os #connection-icon { background: #ffffff0a; border-color: #ffffff13; width: 28px; height: 28px; font-size: 12px; }
+.os-active-app { display: flex; gap: 9px; align-items: center; position: absolute; left: 50%; transform: translateX(-50%); color: #d5e8f7; font-size: 12px; font-weight: 600; }
+.os-active-app > i { color: #9fdfd1; font-size: 13px; }
+
+.realefb-os #home-screen { padding: 0; overscroll-behavior: contain; }
+.realefb-os .os-desktop { max-width: 1230px; padding: 46px 58px 130px; margin: 0 auto; }
+.os-widgets { display: grid; grid-template-columns: 1fr 1.25fr; gap: 28px; align-items: stretch; }
+.realefb-os .os-welcome { position: relative; display: flex; flex-wrap: wrap; align-content: center; align-items: center; justify-content: flex-start; gap: 20px; padding: 28px 26px; border-radius: 29px; background: linear-gradient(130deg, #d9f0ff12, #d9f0ff04); border: 1px solid #d8edff23; box-shadow: inset 0 1px #ffffff13, 0 12px 24px -18px #081b3b60; margin: 0; }
+.os-welcome .os-welcome-logo { width: 78px; height: 78px; border-radius: 22px; box-shadow: 0 10px 30px #0002; }
+.realefb-os .os-welcome h1 { font-size: clamp(27px, 2.9vw, 39px); font-weight: 650; line-height: 1.25; letter-spacing: -1.5px; margin: 8px 0; color: #f4faff; }
+.realefb-os .os-welcome h1 span { color: #b1e9e1; font-weight: 350; }
+.realefb-os .os-welcome .eyebrow { font-size: 8px; letter-spacing: 1.4px; color: #c4dfef; }
+.realefb-os .os-welcome p:last-child { font-size: 12px; color: #bdd4e5; }
+.os-welcome-note { flex-basis: 100%; display: flex; align-items: center; gap: 8px; font-size: 11px; color: #add6df; margin-top: 10px; }
+.os-welcome-note i { font-size: 12px; color: #9fdfd1; }
+.realefb-os .os-flight-widget { padding: 21px 25px 18px; border-radius: 29px; background: linear-gradient(135deg, #c0eaff16, #c0eaff05), #122c4645; border: 1px solid #cbe9ff29; box-shadow: inset 0 1px #ffffff19, 0 16px 32px -23px #07122680; }
+.realefb-os .os-flight-widget::before { display: none; }
+.os-widget-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; color: #cde7f7; font-size: 12px; }
+.os-widget-header > span { display: flex; gap: 10px; align-items: center; font-weight: 600; }
+.os-widget-header > span > i { color: #9ce5d8; }
+.os-refresh { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 50%; border: 1px solid #d8eeff1f; background: #e1f3ff09; color: #c0dceb; font-size: 11px; }
+.os-refresh.is-refreshing i { animation: efb-spin 1s linear infinite; }
+.os-widget-route { display: grid; grid-template-columns: 1fr .8fr 1fr; gap: 12px; align-items: center; margin-top: 16px; }
+.realefb-os .os-widget-route .airport strong { font-size: 34px; letter-spacing: -1.3px; margin: 0 0 4px; font-family: var(--font-display); font-weight: 650; }
+.realefb-os .os-widget-route .airport > span { font-size: 10px; max-width: 160px; color: #b6d1e4; }
+.realefb-os .os-widget-route .airport b { font-family: var(--font-mono); font-size: 14px; margin-top: 12px; color: #dfedf7; }
+.realefb-os .os-widget-route .airport b small { font-size: 8px; color: #a9c4d7; }
+.os-route-line { display: flex; align-items: center; gap: 9px; color: #a2e6dc; }
+.os-route-line > span { height: 1px; flex: 1; background: #b6e5e040; }
+.os-route-line > i { font-size: 18px; }
+.os-widget-footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; border-top: 1px solid #d6eeff14; padding-top: 14px; margin-top: 20px; font-size: 10px; color: #adc9dd; }
+.os-widget-footer > span > span { padding-inline: 6px; color: #6fabb9; }
+.os-widget-footer button, .os-no-flight > button { background: #d4fff00e; border: 1px solid #c7ffe529; border-radius: 10px; color: #b6f4e4; padding: 9px 11px; font-size: 10px; display: flex; align-items: center; gap: 10px; min-height: 34px; }
+.os-widget-footer button:hover, .os-no-flight > button:hover { background: #d4fff021; }
+.os-no-flight { padding: 8px 0 1px; display: flex; align-items: center; flex-direction: column; text-align: center; }
+.os-empty-plane { font-size: 22px; color: #b0e6e1; margin: 9px 0; }
+.os-no-flight h2 { font-family: var(--font-display); font-size: 19px; font-weight: 600; margin: 4px 0; }
+.os-no-flight p { font-size: 11px; color: #b9d2e5; margin: 7px 0 14px; line-height: 1.6; }
+.os-data-error { color: #f2d3b7; font-size: 10px; line-height: 1.7; margin: 12px 0 0; }
+.os-app-library { margin-top: 43px; }
+.os-library-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 5px; gap: 15px; margin-bottom: 25px; }
+.os-library-heading h2 { font-family: var(--font-display); font-weight: 600; font-size: 17px; color: #e5f3ff; margin: 0; letter-spacing: -.3px; }
+.os-library-heading > span { font-size: 8px; color: #a5c8dd; letter-spacing: 1.5px; }
+.realefb-os .os-app-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 30px 28px; align-items: start; }
+.realefb-os .os-app { --app-color: #8dc3ff; --app-top: #86b5f645; --app-bottom: #3e72b445; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; gap: 12px; background: transparent; border: 0; border-radius: 0; box-shadow: none; padding: 4px 0; color: #eff8ff; overflow: visible; isolation: auto; transition: transform .3s var(--ease-out); }
+.realefb-os .os-app::before { display: none; }
+.realefb-os .os-app:hover { background: transparent; box-shadow: none; border: 0; transform: translateY(-4px); }
+.realefb-os .os-app:active { transform: scale(.96); }
+.realefb-os .os-app .os-app-icon { position: relative; display: grid; place-items: center; width: 80px; height: 80px; font-size: 30px; color: var(--app-color); background: linear-gradient(145deg, var(--app-top), var(--app-bottom)); border: 1px solid #e6f5ff40; box-shadow: inset 0 1px #ffffff45, inset 0 -1px #091c4315, 0 9px 20px -9px #00133665; border-radius: 23px; overflow: hidden; transform: none; transition: box-shadow .3s, transform .3s var(--ease-out); }
+.os-app-icon::before { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, #ffffff18, transparent 50%); border-radius: inherit; pointer-events: none; }
+.realefb-os .os-app:hover .os-app-icon { transform: scale(1.035); box-shadow: inset 0 1px #ffffff55, 0 13px 25px -8px #00133670; }
+.realefb-os .os-app h3 { font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: 1.4; color: #e2f0fd; text-shadow: 0 1px 6px #00133665; margin: 0; letter-spacing: -.1px; }
+.os-app-icon img { width: 100%; height: 100%; object-fit: cover; }
+.realefb-os .os-color-mint { --app-color: #b2ffde; --app-top: #63dcb05c; --app-bottom: #298b7a55; }
+.realefb-os .os-color-amber { --app-color: #ffe2b2; --app-top: #efbb645c; --app-bottom: #a2753955; }
+.realefb-os .os-color-violet { --app-color: #e3d4ff; --app-top: #ba9aee6b; --app-bottom: #6d59ac55; }
+.realefb-os .os-color-sky { --app-color: #c4f5ff; --app-top: #7cdcec63; --app-bottom: #2c8ba855; }
+.realefb-os .os-color-silver { --app-color: #e6edf8; --app-top: #c4d3df66; --app-bottom: #73849a55; }
+.os-page-indicator { display: flex; align-items: center; justify-content: center; margin-top: 37px; gap: 8px; }
+.os-page-indicator > span { width: 5px; height: 5px; border-radius: 50%; background: #e3f5ff95; }
+.os-desktop-caption { margin-top: 20px; text-align: center; font-size: 10px; color: #a6c9df; }
+.os-desktop-caption > span { margin-inline: 8px; color: #7eacc4; }
+
+/* One glass dock, with compact chrome while an app is open. */
+.realefb-os .os-dock { position: fixed; top: auto; bottom: 18px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 28px); height: auto; display: flex; padding: 10px 14px 8px; background: linear-gradient(135deg, #f0f8ff15, #f0f8ff06), #19364970; border: 1px solid #e1f3ff3a; border-radius: 25px; box-shadow: inset 0 1px #ffffff30, 0 12px 30px -10px #00132d65; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); z-index: 50; }
+.realefb-os .os-dock nav { display: flex; flex-direction: row; align-items: center; gap: 9px; }
+.realefb-os .os-dock button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 58px; min-height: 60px; padding: 0; border: 0; border-radius: 14px; background: none; transform: none; color: #cde8fa; position: relative; }
+.realefb-os .os-dock button::before { display: none; }
+.realefb-os .os-dock button > span { display: flex; }
+.os-dock .os-dock-icon { display: grid !important; place-items: center; width: 39px; height: 39px; border: 1px solid #e4f5ff26; border-radius: 12px; background: linear-gradient(145deg, #cce8ff20, #82a8d113); box-shadow: inset 0 1px #ffffff20; transition: transform .25s var(--ease-out), background .25s; }
+.os-dock .os-dock-icon > i { font-size: 18px; }
+.os-dock .dock-logbook .os-dock-icon { color: #a8d0ff; background-color: #5c9be31a; }
+.os-dock .dock-tracker .os-dock-icon { color: #a4f1d5; background-color: #58c8aa16; }
+.os-dock .dock-dispatch .os-dock-icon { color: #f3d3a1; background-color: #cc9c5516; }
+.os-dock .dock-documents .os-dock-icon { color: #d2beff; background-color: #a580df16; }
+.realefb-os .os-dock button:hover { background: transparent; transform: none; }
+.realefb-os .os-dock button:hover .os-dock-icon { transform: translateY(-4px); background-color: #d3eaff1d; }
+.realefb-os .os-dock button.active { border: 0; background: transparent; box-shadow: none; color: #e0fff5; }
+.realefb-os .os-dock .os-dock-label { font-size: 8px; font-weight: 500; color: #c7e1f3; line-height: 1; white-space: nowrap; }
+.realefb-os .os-dock .os-dock-dot { display: none; position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #a2f3d9; bottom: -4px; }
+.realefb-os .os-dock button.active .os-dock-dot { display: block; }
+.realefb-os.os-app-open .os-dock { padding: 8px 12px; bottom: 12px; border-radius: 21px; }
+.realefb-os.os-app-open .os-dock button { min-height: 45px; width: 49px; }
+.realefb-os.os-app-open .os-dock .os-dock-label { display: none; }
+.realefb-os .efl-tabbar { left: 24px; right: 24px; width: calc(100% - 48px); bottom: calc(94px + var(--keyboard-inset, 0px)); border-radius: 16px; border-bottom: 1px solid var(--glass-edge); }
+.realefb-os .efl-save-bar { bottom: calc(174px + var(--keyboard-inset, 0px)); }
+.realefb-os .wx-pager { left: 50%; max-width: calc(100% - 32px); bottom: 103px; }
+.realefb-os #detail-screen:has(.efl-sheet) .wx-pager { bottom: 176px; }
+.realefb-os #detail-screen { padding: 24px 32px 190px; }
+.realefb-os #detail-screen:has(.tracker-sheet) { padding: 0; }
+.realefb-os .tracker-hud { bottom: 100px; }
+.realefb-os #init-screen, .realefb-os #wizard-screen { height: 100%; padding: 26px 24px 120px; overflow-y: auto; }
+.realefb-os #init-screen .init-card { width: min(440px, 100%); max-width: 440px; }
+.os-saved-account { display: flex; align-items: center; text-align: left; gap: 10px; padding: 14px; margin: 20px 0 16px; border: 1px solid #9ae8d526; border-radius: 13px; color: #bdd7e9; background: #b4f7e707; font-size: 11px; }
+.os-saved-account > i { color: #8ae5c5; }
+.os-saved-account span { flex: 1; line-height: 1.7; }
+.os-saved-account b { display: block; color: #e1edf8; font-weight: 600; }
+.os-saved-account button { padding: 7px; background: none; color: #9bdac9; border: 0; font-size: 11px; }
+.realefb-os .os-import-back { background: none; border: 0; color: #adc8dd; padding: 10px 15px; font-size: 12px; }
+.realefb-os .os-app-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; min-height: 55vh; text-align: center; }
+.os-app-empty h2 { font-family: var(--font-display); font-size: 26px; letter-spacing: -.8px; margin: 0; color: #e0f0fc; }
+.os-app-empty p { font-size: 13px; max-width: 330px; line-height: 1.8; color: #a9c3d8; margin: 0 0 10px; }
+.os-empty-app-icon { display: grid; place-items: center; width: 66px; height: 66px; border-radius: 20px; color: #b6d8ff; background: #94bcff18; border: 1px solid #b3d9ff25; font-size: 28px; }
+.realefb-os .os-app-empty #efl-import-btn { display: flex; gap: 20px; align-items: center; background: #9be7cf1a; color: #b8f4de; border: 1px solid #b8f4de2a; border-radius: 12px; padding: 13px 20px; font-size: 13px; }
+
+/* Boot uses the supplied brand artwork unchanged. No account or network gate. */
+.os-boot { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 35%, #1c3044, #080e18 65%); color: #eef7ff; }
+.os-boot-identity { display: flex; align-items: center; flex-direction: column; text-align: center; padding: 24px; animation: os-boot-in .65s var(--ease-out) both; }
+.os-boot-logo { width: 132px; height: 132px; border-radius: 34px; box-shadow: 0 15px 60px #0003, 0 0 50px #b6e5ff08; }
+.os-boot-identity h1 { font-family: var(--font-display); font-size: 32px; font-weight: 650; letter-spacing: -1px; margin: 25px 0 10px; }
+.os-boot-identity h1 span { font-weight: 350; color: #aadbcf; }
+.os-boot-identity p { font-size: 12px; color: #95aec5; margin: 0; line-height: 1.8; }
+.os-boot-loader { width: 112px; height: 3px; margin-top: 32px; background: #ffffff13; border-radius: 10px; overflow: hidden; }
+.os-boot-loader > span { width: 45%; display: block; height: 100%; background: #bddcd9; border-radius: inherit; animation: os-boot-progress 1.2s ease-in-out infinite; }
+.os-boot-caption { position: absolute; bottom: 35px; color: #637b94; letter-spacing: 2.5px; font-size: 8px; }
+@keyframes os-boot-in { from { opacity: 0; transform: scale(.96) translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes os-boot-progress { from { transform: translateX(-105%); } to { transform: translateX(325%); } }
+.realefb-os #home-screen:not(.hidden) .os-welcome, .realefb-os #home-screen:not(.hidden) .os-flight-widget { animation: efb-enter .65s var(--ease-out) backwards; }
+.realefb-os #home-screen:not(.hidden) .os-app { animation: efb-enter .6s .12s var(--ease-out) backwards; }
+.realefb-os #home-screen:not(.hidden) .os-app:nth-child(2) { animation-delay: .16s; }
+.realefb-os #home-screen:not(.hidden) .os-app:nth-child(3) { animation-delay: .20s; }
+.realefb-os #home-screen:not(.hidden) .os-app:nth-child(4) { animation-delay: .24s; }
+.realefb-os #home-screen:not(.hidden) .os-app:nth-child(5) { animation-delay: .28s; }
+.realefb-os #home-screen:not(.hidden) .os-app:nth-child(6) { animation-delay: .32s; }
+.realefb-os[inert] #home-screen :is(.os-welcome, .os-flight-widget, .os-app) { animation: none; }
+@media (min-width: 1500px) { .realefb-os .os-desktop { padding-top: 65px; } .os-app-library { margin-top: 60px; } .os-widgets { gap: 35px; } }
+@media (max-width: 1000px) {
+  .realefb-os .os-desktop { padding: 32px 38px 130px; }
+  .os-widgets { gap: 20px; grid-template-columns: 1fr 1.2fr; }
+  .realefb-os .os-welcome { gap: 15px; padding: 24px; }
+  .os-welcome .os-welcome-logo { width: 56px; height: 56px; border-radius: 16px; }
+  .realefb-os .os-welcome h1 { font-size: 29px; }
+  .realefb-os .os-welcome .eyebrow { font-size: 7px; }
+  .realefb-os .os-app-grid { gap: 26px 18px; }
+  .realefb-os .os-app .os-app-icon { width: 70px; height: 70px; border-radius: 21px; font-size: 27px; }
+  .realefb-os .os-widget-route .airport strong { font-size: 29px; }
+}
+@media (max-width: 850px) {
+  .realefb-os .os-dock, .realefb-os .app-header { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@media (max-width: 760px) {
+  .realefb-os { --header-height: 58px; }
+  .realefb-os .app-header { padding-inline: 20px; }
+  .realefb-os .os-desktop { padding: 28px 25px 130px; }
+  .os-widgets { grid-template-columns: 1fr 1.25fr; gap: 15px; }
+  .realefb-os .os-welcome { padding: 22px; gap: 12px; align-content: flex-start; }
+  .os-welcome .os-welcome-logo { width: 47px; height: 47px; border-radius: 14px; }
+  .realefb-os .os-welcome h1 { font-size: 27px; }
+  .realefb-os .os-welcome p:last-child { font-size: 10px; }
+  .os-welcome-note { margin-top: 3px; font-size: 10px; }
+  .realefb-os .os-flight-widget { padding: 18px 20px; }
+  .os-widget-route { gap: 8px; grid-template-columns: 1fr .5fr 1fr; }
+  .realefb-os .os-widget-route .airport > span { max-width: 90px; font-size: 9px; }
+  .realefb-os .os-widget-route .airport strong { font-size: 26px; }
+  .os-widget-footer { gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .realefb-os .os-app-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 27px 20px; }
+  .os-active-app { display: none; }
+  .realefb-os .os-dock, .realefb-os .app-header { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .realefb-os .os-dock { background: linear-gradient(135deg, #a6cee824, #a6cee809), #183246ee; }
+}
+@media (max-width: 480px) {
+  .realefb-os .brand b { font-size: 14px; }
+  .os-logo { width: 29px; height: 29px; border-radius: 8px; }
+  .realefb-os .app-header { padding-inline: 15px; }
+  .realefb-os .os-desktop { padding: 24px 20px 125px; }
+  .os-widgets { grid-template-columns: 1fr; gap: 17px; }
+  .realefb-os .os-welcome { padding: 23px; align-items: center; gap: 17px; border-radius: 25px; }
+  .os-welcome .os-welcome-logo { width: 58px; height: 58px; border-radius: 17px; }
+  .realefb-os .os-welcome h1 { font-size: 29px; }
+  .os-welcome-note { margin-top: 0; }
+  .realefb-os .os-widget-route .airport strong { font-size: 31px; }
+  .realefb-os .os-widget-route .airport > span { max-width: 125px; }
+  .os-widget-footer { flex-wrap: nowrap; }
+  .os-app-library { margin-top: 30px; }
+  .os-library-heading > span { display: none; }
+  .realefb-os .os-app-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px 15px; }
+  .realefb-os .os-app .os-app-icon { width: 70px; height: 70px; }
+  .realefb-os .os-app h3 { font-size: 11px; }
+  .realefb-os .os-dock { padding: 8px 10px; border-radius: 23px; bottom: 12px; }
+  .realefb-os .os-dock nav { gap: 5px; }
+  .realefb-os .os-dock button { width: 42px; min-height: 53px; }
+  .os-dock .os-dock-icon { width: 35px; height: 35px; border-radius: 11px; }
+  .os-dock .os-dock-icon > i { font-size: 16px; }
+  .realefb-os .os-dock .os-dock-label { font-size: 7px; }
+  .realefb-os.os-app-open .os-dock button { width: 40px; }
+  .realefb-os .efl-tabbar { left: 8px; right: 8px; width: calc(100% - 16px); bottom: calc(88px + var(--keyboard-inset, 0px)); }
+  .realefb-os .efl-save-bar { bottom: calc(168px + var(--keyboard-inset, 0px)); }
+  .realefb-os #detail-screen { padding: 18px 14px 190px; }
+  .realefb-os #detail-screen:has(.tracker-sheet) { padding: 0; }
+  .realefb-os #init-screen, .realefb-os #wizard-screen { padding: 20px 15px 110px; align-items: flex-start; }
+  .realefb-os #init-screen .init-card { margin: 12px 0; padding: 28px 24px; }
+  .os-boot-logo { width: 118px; height: 118px; border-radius: 30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .realefb-os *, .os-boot *, .realefb-os *::before { animation: none !important; transition: none !important; }
+  .realefb-os .os-dock, .realefb-os .app-header { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}

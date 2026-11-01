@@ -17,6 +17,9 @@ internal sealed class SimBriefFlightPlan
     public string OriginIcao { get; set; } = "N/A";
     public string OriginIata { get; set; } = "N/A";
     public string OriginName { get; set; } = "N/A";
+    public string OriginRunway { get; set; } = "N/A";
+    public string DestRunway { get; set; } = "N/A";
+    public double? OriginElevationFt { get; set; }
     public double? OriginLat { get; set; }
     public double? OriginLon { get; set; }
     public string DestIcao { get; set; } = "N/A";
@@ -224,6 +227,9 @@ internal sealed class SimBriefFlightPlan
         fp.EstZfw = GetNumProp(root, "weights", "est_zfw");
         fp.MaxZfw = GetNumProp(root, "weights", "max_zfw");
         fp.CruiseAltitudeFt = GetNumProp(root, "general", "initial_altitude");
+        fp.OriginRunway = GetProp(root, "origin", "plan_rwy");
+        fp.DestRunway = GetProp(root, "destination", "plan_rwy");
+        fp.OriginElevationFt = GetNumProp(root, "origin", "elevation");
         fp.DestElevationFt = GetNumProp(root, "destination", "elevation");
         fp.CostIndex = GetNumProp(root, "general", "costindex");
         fp.IsaDevC = GetNumProp(root, "general", "avg_temp_dev");

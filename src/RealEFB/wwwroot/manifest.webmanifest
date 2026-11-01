@@ -1,0 +1,15 @@
+{
+  "name": "RealEFB OS",
+  "short_name": "RealEFB",
+  "description": "Your personal flight companion.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#080e18",
+  "theme_color": "#101821",
+  "icons": [
+    { "src": "/assets/brand/realefb-logo.png", "type": "image/png", "sizes": "any", "purpose": "any" }
+  ]
+}
